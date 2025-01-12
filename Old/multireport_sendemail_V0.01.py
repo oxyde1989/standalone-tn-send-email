@@ -1,4 +1,4 @@
-import smtplib, json, argparse, os, time, base64, subprocess, socket
+import smtplib, json, argparse, os, time, base64, subprocess
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
@@ -6,7 +6,7 @@ from email import encoders
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
-##### V 0.02
+##### V 0.01
 ##### Stand alone script to send email via Truenas
 
 def create_log_file():
@@ -123,7 +123,6 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
     if provider == "smtp":  #smtp version
         try:
             append_log(f"parsing smtp config") 
-            smtp_security = email_config["security"]
             smtp_server = email_config["outgoingserver"]
             smtp_port = email_config["port"]
             smtp_user = email_config["user"]
@@ -143,39 +142,12 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                 append_log(f"attachments found") 
                 attachment_ok_count = attach_files(msg, attachment_files, attachment_ok_count)
                 append_log(f"{attachment_ok_count} ok attachments") 
-                
-            append_log(f"get hostname")     
-            hostname = socket.getfqdn()
-            if not hostname:
-                hostname = socket.gethostname()  
-            append_log(f"hostname: {hostname}")   
 
-            append_log(f"establing connection based on security level set on TN: {smtp_security}") 
-            if smtp_security == "TLS":
-                with smtplib.SMTP(smtp_server, smtp_port) as server:
-                    append_log(f"entered {smtp_security} path")   
-                    #server.set_debuglevel(1)  #### this line can be uncommented if more debug is needed                   
-                    server.ehlo(hostname)         
-                    server.starttls()
-                    server.login(smtp_user, smtp_password)
-                    server.sendmail(smtp_user, to_address, msg.as_string())
-            elif smtp_security == "SSL":
-                with smtplib.SMTP_SSL(smtp_server, smtp_port) as server:
-                    append_log(f"entered {smtp_security} path")   
-                    #server.set_debuglevel(1)  #### this line can be uncommented if more debug is needed                   
-                    server.ehlo(hostname)         
-                    server.starttls()
-                    server.login(smtp_user, smtp_password)
-                    server.sendmail(smtp_user, to_address, msg.as_string())
-            elif smtp_security == "PLAIN":
-                with smtplib.SMTP(smtp_server, smtp_port) as server:
-                    append_log(f"entered {smtp_security} path")   
-                    #server.set_debuglevel(1)  #### this line can be uncommented if more debug is needed    
-                    server.ehlo(hostname)
-                    server.login(smtp_user, smtp_password)
-                    server.sendmail(smtp_user, to_address, msg.as_string())        
-            else:
-                process_output(True, f"KO: something wrong switching SMTP security level", 1)             
+            append_log(f"establing connection...") 
+            with smtplib.SMTP(smtp_server, smtp_port) as server:
+                server.starttls()
+                server.login(smtp_user, smtp_password)
+                server.sendmail(smtp_user, to_address, msg.as_string())
 
             append_log(f"Email Sent via SMTP")
 
@@ -232,6 +204,7 @@ if __name__ == "__main__":
 
     try:
         attachment_count = calc_attachment_count(args.attachment_files)      
+        attachment_ok_count = 0
         
         log_file, log_file_count = create_log_file()
         append_log(f"File {log_file} successfully generated")
@@ -252,9 +225,6 @@ if __name__ == "__main__":
             process_output(True, f"Can't switch provider", 1)
             
         attachment_ok_count = send_email(args.subject, args.to_address, args.mail_body_html, args.attachment_files, email_config, provider)
-        
-        if attachment_ok_count is None:
-            attachment_ok_count = 0
         
         if attachment_ok_count == attachment_count:
             process_output(False, f">> All is Good <<", 0)
