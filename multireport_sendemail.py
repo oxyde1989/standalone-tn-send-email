@@ -164,7 +164,6 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                     append_log(f"entered {smtp_security} path")   
                     #server.set_debuglevel(1)  #### this line can be uncommented if more debug is needed                   
                     server.ehlo(hostname)         
-                    server.starttls()
                     server.login(smtp_user, smtp_password)
                     server.sendmail(smtp_user, to_address, msg.as_string())
             elif smtp_security == "PLAIN":
