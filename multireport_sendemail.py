@@ -6,14 +6,14 @@ from email import encoders
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
-##### V 0.02
+##### V 0.03
 ##### Stand alone script to send email via Truenas
 
 def create_log_file():
     """
-        We setup a folder called mrlog where store log's file on every start
+        We setup a folder called sendemail_log where store log's file on every start. Oldest mrlog folder can be safely deleted
     """       
-    log_dir = os.path.join(os.getcwd(), 'mrlog')
+    log_dir = os.path.join(os.getcwd(), 'sendemail_log')
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
         log_file_count = 0
@@ -73,7 +73,7 @@ def read_config_data():
 
 def load_html_content(mail_body_html):
     """
-     let user to pass nor a file to read and a plain text/html
+     let user to pass nor a file to read and a plain text/html as body
     """
     try:
         with open(mail_body_html, 'r') as f:
@@ -148,7 +148,7 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
             hostname = socket.getfqdn()
             if not hostname:
                 hostname = socket.gethostname()  
-            append_log(f"hostname: {hostname}")   
+            append_log(f"hostname retrieved: {hostname}")   
 
             append_log(f"establing connection based on security level set on TN: {smtp_security}") 
             if smtp_security == "TLS":
@@ -225,7 +225,7 @@ if __name__ == "__main__":
     parser.add_argument("--subject", required=True, help="Email subject")
     parser.add_argument("--to_address", required=True, help="Recipient")
     parser.add_argument("--mail_body_html", required=True, help="File path for the email body, or just a plain text/html")
-    parser.add_argument("--attachment_files", nargs='*', help="OPTIONAL attachments as json file path array")
+    parser.add_argument("--attachment_files", nargs='*', help="OPTIONAL attachments as json file path array. No ecoding needed")
 
     args = parser.parse_args()
 
@@ -258,6 +258,6 @@ if __name__ == "__main__":
         if attachment_ok_count == attachment_count:
             process_output(False, f">> All is Good <<", 0)
         else:
-            process_output(False, f">> Soft warning: something wrong with 1 or more attachments >>", 0)
+            process_output(False, f">> Soft warning: something wrong with 1 or more attachments, check logs for more info >>", 0)
     except Exception as e:
         process_output(True, f"Error: {e}", 1)

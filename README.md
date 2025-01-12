@@ -7,6 +7,7 @@
 ### Description
 Starting from Truenas 24.10.10, the `sendemail` function is no longer available.  
 This standalone script provides the ability to send emails and attachments using the TrueNAS `mail.config`.
+If you encounter some problem with your configuration, please send an email to oxyde1989@gmail.com attacching the log files and more info you can
 
 ---
 
