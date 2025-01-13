@@ -1,12 +1,14 @@
-import smtplib, json, argparse, os, time, base64, subprocess, socket
+import smtplib, json, argparse, os, time, base64, subprocess, socket, uuid
+from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
+from email.utils import formatdate
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
-##### V 0.03
+##### V 0.04
 ##### Stand alone script to send email via Truenas
 
 def create_log_file():
@@ -132,12 +134,25 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
             append_log(f"parsing html content") 
             html_content = load_html_content(mail_body_html)
 
+            append_log(f"parsing headers")
             msg = MIMEMultipart()
-            msg['From'] = smtp_user
+            msg['From'] = f"{email_config['fromname']} <{email_config['fromemail']}>" # issue #1
             msg['To'] = to_address
             msg['Subject'] = subject
             msg.attach(MIMEText(html_content, 'html'))
-
+            
+            # issue 2
+            append_log(f"generate a message ID using {smtp_user}")
+            messageid_domain = smtp_user.split("@")[1]
+            append_log(f"domain: {messageid_domain}")
+            messageid_uuid = f"{datetime.now().strftime('%Y_%m_%d_%H_%M_%S_%f')[:-3]}{uuid.uuid4()}"
+            append_log(f"uuid: {messageid_uuid}")
+            messageid = f"<{messageid_uuid}@{messageid_domain}>"
+            append_log(f"messageid: {messageid}")
+            msg['Message-ID'] = messageid
+            msg['Date'] = formatdate(localtime=True) #
+            
+            
             append_log(f"check for attachements...") 
             if attachment_files:
                 append_log(f"attachments found") 
@@ -154,24 +169,34 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
             if smtp_security == "TLS":
                 with smtplib.SMTP(smtp_server, smtp_port) as server:
                     append_log(f"entered {smtp_security} path")   
-                    #server.set_debuglevel(1)  #### this line can be uncommented if more debug is needed                   
-                    server.ehlo(hostname)         
+                    #server.set_debuglevel(1)  #### this line can be uncommented if more debug is needed 
+                    append_log(f"adding ehlo to the message")                   
+                    server.ehlo(hostname)      
+                    append_log(f"establing TLS connection")    
                     server.starttls()
+                    append_log(f"entering credentials") 
                     server.login(smtp_user, smtp_password)
+                    append_log(f"sending {smtp_security} email") 
                     server.sendmail(smtp_user, to_address, msg.as_string())
             elif smtp_security == "SSL":
                 with smtplib.SMTP_SSL(smtp_server, smtp_port) as server:
                     append_log(f"entered {smtp_security} path")   
-                    #server.set_debuglevel(1)  #### this line can be uncommented if more debug is needed                   
+                    #server.set_debuglevel(1)  #### this line can be uncommented if more debug is needed    
+                    append_log(f"adding ehlo to the message")                
                     server.ehlo(hostname)         
+                    append_log(f"entering credentials") 
                     server.login(smtp_user, smtp_password)
+                    append_log(f"sending {smtp_security} email") 
                     server.sendmail(smtp_user, to_address, msg.as_string())
             elif smtp_security == "PLAIN":
                 with smtplib.SMTP(smtp_server, smtp_port) as server:
                     append_log(f"entered {smtp_security} path")   
                     #server.set_debuglevel(1)  #### this line can be uncommented if more debug is needed    
+                    append_log(f"adding ehlo to the message")  
                     server.ehlo(hostname)
+                    append_log(f"entering credentials")
                     server.login(smtp_user, smtp_password)
+                    append_log(f"sending {smtp_security} email") 
                     server.sendmail(smtp_user, to_address, msg.as_string())        
             else:
                 process_output(True, f"KO: something wrong switching SMTP security level", 1)             
@@ -231,6 +256,7 @@ if __name__ == "__main__":
 
     try:
         attachment_count = calc_attachment_count(args.attachment_files)      
+        attachment_ok_count = 0 #avoid error if except are raised
         
         log_file, log_file_count = create_log_file()
         append_log(f"File {log_file} successfully generated")
