@@ -5,11 +5,12 @@
 ---
 
 ### Description
-Starting from Truenas 24.10.10, the `sendemail` function is no longer available.  
-This standalone script provides the ability to send emails and attachments using the TrueNAS `mail.config`.
-Designed to be a wrapper for <a href="https://github.com/JoeSchmuck/Multi-Report">Joe's Multi Report</a>, it also can be used for simplify sending email overall.
-Everytime the script run, a log file will be generated; those files are automatically deleted with a retention of max 15. 
-For any problem, improvements, ecc ecc let me know!
+Starting from Truenas 24.10.10, the `sendemail` function is no longer available.  <br>
+This standalone script provides the ability to send emails and attachments using the TrueNAS `mail.config`.<br>
+Designed to be a wrapper for <a href="https://github.com/JoeSchmuck/Multi-Report">Joe's Multi Report</a>, it also can be used for simplify sending email overall.<br>
+Everytime the script run, a log file will be generated; those files are automatically deleted with a retention of max 15. <br>
+
+### For any problem, improvements, ecc ecc let me know!
 If you feel more comfortable to share logs, also send me an email: oxyde1989@gmail.com
 
 ---
