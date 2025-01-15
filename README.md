@@ -53,5 +53,5 @@ python3 multireport_sendemail.py \
 mail_bulk= '/path/to/base64encode/email'
 
 python3 multireport_sendemail.py \
-    --mail_bulk "$mail_bulk" \
+    --mail_bulk "$mail_bulk"
 
