@@ -8,20 +8,8 @@ from email.utils import formatdate
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
-##### V 0.05
+##### V 0.04
 ##### Stand alone script to send email via Truenas
-
-def validate_arguments(args):
-    """
-        new function for an easier validation of the args passed to the function, due the fact there are now 2 calls methods
-    """
-    if not args.mail_bulk and not args.mail_body_html:
-        print("Error: You must provide at least --mail_bulk or --mail_body_html.")
-        exit(1)
-    if args.mail_body_html:
-        if not args.subject or not args.to_address:
-            print("Error: If --mail_body_html is provided, both --subject and --to_address are required.")
-            exit(1)
 
 def create_log_file():
     """
@@ -85,30 +73,20 @@ def read_config_data():
     midclt_config = json.loads(midclt_output.stdout)
     return midclt_config
 
-def load_html_content(input_content):
+def load_html_content(mail_body_html):
     """
-     use this fuction to switch from achieve nor a file to read and a plain text/html
+     let user to pass nor a file to read and a plain text/html as body
     """
     try:
-        with open(input_content, 'r') as f:
+        with open(mail_body_html, 'r') as f:
             append_log(f"body is a file") 
             return f.read()
     except FileNotFoundError:
         append_log(f"no file found, plain text/html output") 
-        return input_content
+        return mail_body_html
     except Exception as e:
         process_output(True, f"Something wrong on body content {e}", 1)  
-
-def validate_base64_content(input_content):
-    """
-    use this funtcion to validate that an input is base64encoded. Return error if not
-    """      
-    try:
-        base64.b64decode(input_content, validate=True) 
-        append_log(f"Base64 message is valid.")
-    except Exception as e:
-        process_output(True, f"Error: Invalid Base64 content. {e}", 1)   
-                            
+        
 def calc_attachment_count(attachment_input):      
     """
     improved attachments output
@@ -139,7 +117,7 @@ def attach_files(msg, attachment_files, attachment_ok_count):
             append_log(f"KO {attachment_file}: {e}")      
     return attachment_ok_count  
             
-def send_email(subject, to_address, mail_body_html, attachment_files, email_config, provider, bulk_email):
+def send_email(subject, to_address, mail_body_html, attachment_files, email_config, provider):
     """
     Function to send an email via SMTP or Gmail OAuth based on the provider available
     """
@@ -152,49 +130,40 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
             smtp_port = email_config["port"]
             smtp_user = email_config["user"]
             smtp_password = email_config["pass"]
-            
-            append_log(f"switch from classic send and bulk email") # issue 3           
-            if mail_body_html:
-                append_log(f"parsing html content") 
-                html_content = load_html_content(mail_body_html)
 
-                append_log(f"parsing headers")
-                msg = MIMEMultipart()
-                msg['From'] = f"{email_config['fromname']} <{email_config['fromemail']}>" # issue #1
-                msg['To'] = to_address
-                msg['Subject'] = subject
-                msg.attach(MIMEText(html_content, 'html'))
-                
-                # issue 2
-                append_log(f"generate a message ID using {smtp_user}")
-                messageid_domain = smtp_user.split("@")[1]
-                append_log(f"domain: {messageid_domain}")
-                messageid_uuid = f"{datetime.now().strftime('%Y_%m_%d_%H_%M_%S_%f')[:-3]}{uuid.uuid4()}"
-                append_log(f"uuid: {messageid_uuid}")
-                messageid = f"<{messageid_uuid}@{messageid_domain}>"
-                append_log(f"messageid: {messageid}")
-                msg['Message-ID'] = messageid
-                msg['Date'] = formatdate(localtime=True) #
-                
-                
-                append_log(f"check for attachements...") 
-                if attachment_files:
-                    append_log(f"attachments found") 
-                    attachment_ok_count = attach_files(msg, attachment_files, attachment_ok_count)
-                    append_log(f"{attachment_ok_count} ok attachments") 
-                    
-                append_log(f"get hostname")     
-                hostname = socket.getfqdn()
-                if not hostname:
-                    hostname = socket.gethostname()  
-                append_log(f"hostname retrieved: {hostname}")   
+            append_log(f"parsing html content") 
+            html_content = load_html_content(mail_body_html)
+
+            append_log(f"parsing headers")
+            msg = MIMEMultipart()
+            msg['From'] = f"{email_config['fromname']} <{email_config['fromemail']}>" # issue #1
+            msg['To'] = to_address
+            msg['Subject'] = subject
+            msg.attach(MIMEText(html_content, 'html'))
             
-            elif bulk_email:
-                append_log(f"using bulk email provided")
-                msg = load_html_content(bulk_email)
-                validate_base64_content(msg)  
-            else:
-                process_output(True, f"Something wrong with the data input", 1)
+            # issue 2
+            append_log(f"generate a message ID using {smtp_user}")
+            messageid_domain = smtp_user.split("@")[1]
+            append_log(f"domain: {messageid_domain}")
+            messageid_uuid = f"{datetime.now().strftime('%Y_%m_%d_%H_%M_%S_%f')[:-3]}{uuid.uuid4()}"
+            append_log(f"uuid: {messageid_uuid}")
+            messageid = f"<{messageid_uuid}@{messageid_domain}>"
+            append_log(f"messageid: {messageid}")
+            msg['Message-ID'] = messageid
+            msg['Date'] = formatdate(localtime=True) #
+            
+            
+            append_log(f"check for attachements...") 
+            if attachment_files:
+                append_log(f"attachments found") 
+                attachment_ok_count = attach_files(msg, attachment_files, attachment_ok_count)
+                append_log(f"{attachment_ok_count} ok attachments") 
+                
+            append_log(f"get hostname")     
+            hostname = socket.getfqdn()
+            if not hostname:
+                hostname = socket.gethostname()  
+            append_log(f"hostname retrieved: {hostname}")   
 
             append_log(f"establing connection based on security level set on TN: {smtp_security}") 
             if smtp_security == "TLS":
@@ -243,34 +212,25 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
             credentials = Credentials.from_authorized_user_info(email_config["oauth"])
             service = build('gmail', 'v1', credentials=credentials)
             
-            append_log(f"switch from classic send and bulk email") # issue 3     
-            if mail_body_html:            
-                append_log(f"parsing data from config") 
-                msg = MIMEMultipart()
-                msg['From'] = f"{email_config['fromemail'] if email_config['fromemail'] else to_address} <{email_config['fromname']}>"
-                msg['to'] = to_address
-                msg['subject'] = subject
-                        
-                append_log(f"parsing html content") 
-                html_content = load_html_content(mail_body_html)            
-                msg.attach(MIMEText(html_content, 'html'))
+            append_log(f"parsing data from config") 
+            msg = MIMEMultipart()
+            msg['From'] = f"{email_config['fromemail'] if email_config['fromemail'] else to_address} <{email_config['fromname']}>"
+            msg['to'] = to_address
+            msg['subject'] = subject
+                       
+            append_log(f"parsing html content") 
+            html_content = load_html_content(mail_body_html)            
+            msg.attach(MIMEText(html_content, 'html'))
+            
+            append_log(f"check for attachements...") 
+            if attachment_files:
+                append_log(f"attachments found") 
+                attachment_ok_count = attach_files(msg, attachment_files, attachment_ok_count)
+                append_log(f"{attachment_ok_count} ok attachments")     
                 
-                append_log(f"check for attachements...") 
-                if attachment_files:
-                    append_log(f"attachments found") 
-                    attachment_ok_count = attach_files(msg, attachment_files, attachment_ok_count)
-                    append_log(f"{attachment_ok_count} ok attachments")   
-                      
-                append_log(f"Encoding message")     
-                raw_message = msg.as_bytes() 
-                msg = base64.urlsafe_b64encode(raw_message).decode('utf-8')                
-                    
-            elif bulk_email:
-                append_log(f"using bulk email provided")
-                msg = load_html_content(bulk_email)
-                validate_base64_content(msg)          
-            else:
-                process_output(True, f"Something wrong with the data input", 1)                                                     
+            append_log(f"Encoding message")     
+            raw_message = msg.as_bytes() 
+            msg = base64.urlsafe_b64encode(raw_message).decode('utf-8')                     
             
             append_log(f"sending email")           
             message = service.users().messages().send(userId="me", body={'raw': msg}).execute()
@@ -287,15 +247,12 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
   
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Workaround to send email easily in Multi Report")
-    parser.add_argument("--subject", help="Email subject")
-    parser.add_argument("--to_address", help="Recipient")
-    parser.add_argument("--mail_body_html", help="File path for the email body, or just a plain text/html")
+    parser.add_argument("--subject", required=True, help="Email subject")
+    parser.add_argument("--to_address", required=True, help="Recipient")
+    parser.add_argument("--mail_body_html", required=True, help="File path for the email body, or just a plain text/html")
     parser.add_argument("--attachment_files", nargs='*', help="OPTIONAL attachments as json file path array. No ecoding needed")
-    parser.add_argument("--mail_bulk", help="Bulk email with all necessary parts, encoded and combined. File path or plain text supported")
 
     args = parser.parse_args()
-    
-    validate_arguments(args) 
 
     try:
         attachment_count = calc_attachment_count(args.attachment_files)      
@@ -319,7 +276,7 @@ if __name__ == "__main__":
         else:
             process_output(True, f"Can't switch provider", 1)
             
-        attachment_ok_count = send_email(args.subject, args.to_address, args.mail_body_html, args.attachment_files, email_config, provider, args.mail_bulk)
+        attachment_ok_count = send_email(args.subject, args.to_address, args.mail_body_html, args.attachment_files, email_config, provider)
         
         if attachment_ok_count is None:
             attachment_ok_count = 0
