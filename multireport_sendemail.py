@@ -8,7 +8,7 @@ from email.utils import formatdate
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
-##### V 0.05
+##### V 0.06
 ##### Stand alone script to send email via Truenas
 
 def validate_arguments(args):
@@ -89,13 +89,17 @@ def load_html_content(input_content):
     """
      use this fuction to switch from achieve nor a file to read and a plain text/html
     """
-    try:
-        with open(input_content, 'r') as f:
-            append_log(f"body is a file") 
-            return f.read()
-    except FileNotFoundError:
-        append_log(f"no file found, plain text/html output") 
-        return input_content
+    try:        
+        if len(input_content) > 255:
+            append_log(f"body can't be a file, too much long")
+            return input_content
+        elif os.path.exists(input_content):
+            with open(input_content, 'r') as f:
+                append_log(f"body is a file") 
+                return f.read()
+        else:
+            append_log(f"no file found, plain text/html output") 
+            return input_content            
     except Exception as e:
         process_output(True, f"Something wrong on body content {e}", 1)  
 
