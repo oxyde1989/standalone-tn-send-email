@@ -8,7 +8,7 @@ from email.utils import formatdate
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
-##### V 0.07
+##### V 0.06
 ##### Stand alone script to send email via Truenas
 
 def validate_arguments(args):
@@ -156,38 +156,22 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
             smtp_port = email_config["port"]
             smtp_user = email_config["user"]
             smtp_password = email_config["pass"]
-            smtp_fromemail = email_config['fromemail']
-            smtp_fromname = email_config['fromname']
             
-            append_log(f"switch from classic send and bulk email")    
+            append_log(f"switch from classic send and bulk email") # issue 3           
             if mail_body_html:
-                append_log(f"mail hmtl provided")
                 append_log(f"parsing html content") 
                 html_content = load_html_content(mail_body_html)
 
-                append_log(f"start parsing headers")
+                append_log(f"parsing headers")
                 msg = MIMEMultipart()
-                append_log(f"parsing data from config") 
-                if smtp_fromname:
-                    msg['From'] = f"{smtp_fromname} <{smtp_fromemail}>"
-                    append_log(f"using fromname {smtp_fromname}")
-                else: 
-                    msg['From'] = smtp_fromemail
-                    append_log(f"using fromemail {smtp_fromemail}")
+                msg['From'] = f"{email_config['fromname']} <{email_config['fromemail']}>" # issue #1
                 msg['To'] = to_address
                 msg['Subject'] = subject
                 msg.attach(MIMEText(html_content, 'html'))
                 
+                # issue 2
                 append_log(f"generate a message ID using {smtp_user}")
-                try:
-                    messageid_domain = smtp_user.split("@")[1]
-                except:
-                    append_log(f"{smtp_user} not a valid address, tryng on {smtp_fromemail}")
-                    try:
-                        messageid_domain = smtp_fromemail.split("@")[1]
-                    except:
-                        append_log(f"{smtp_fromemail} not a valid address, need to use a fallback ")
-                        messageid_domain = "local.me"
+                messageid_domain = smtp_user.split("@")[1]
                 append_log(f"domain: {messageid_domain}")
                 messageid_uuid = f"{datetime.now().strftime('%Y_%m_%d_%H_%M_%S_%f')[:-3]}{uuid.uuid4()}"
                 append_log(f"uuid: {messageid_uuid}")
@@ -263,18 +247,11 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
             credentials = Credentials.from_authorized_user_info(email_config["oauth"])
             service = build('gmail', 'v1', credentials=credentials)
             
-            append_log(f"switch from classic send and bulk email")     
-            if mail_body_html:                  
-                append_log(f"mail hmtl provided")
-                append_log(f"start parsing headers")          
-                msg = MIMEMultipart()
+            append_log(f"switch from classic send and bulk email") # issue 3     
+            if mail_body_html:            
                 append_log(f"parsing data from config") 
-                if email_config['fromname']:
-                    msg['From'] = f"{email_config['fromname']} <{email_config['fromemail']}>"
-                    append_log(f"using fromname")
-                else: 
-                    msg['From'] = email_config['fromemail']
-                    append_log(f"using fromemail")
+                msg = MIMEMultipart()
+                msg['From'] = f"{email_config['fromemail'] if email_config['fromemail'] else to_address} <{email_config['fromname']}>"
                 msg['to'] = to_address
                 msg['subject'] = subject
                         
