@@ -10,7 +10,7 @@ from email.utils import formatdate
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
-##### V 0.09
+##### V 0.08
 ##### Stand alone script to send email via Truenas
 
 def validate_arguments(args):
@@ -144,33 +144,6 @@ def attach_files(msg, attachment_files, attachment_ok_count):
         except Exception as e:
             append_log(f"KO {attachment_file}: {e}")      
     return attachment_ok_count  
-
-def getMRconfigvalue(key):
-    """
-    Function to get eventually multi report value from config, passing the key > the name of the setting
-    """    
-    config_file = "multi_report_config.txt" #default
-    
-    if not os.path.exists(config_file):
-        append_log(f"{config_file} not found")
-        return ""
-
-    try:
-        with open(config_file, "r") as file:
-            for line in file:
-                line = line.strip()
-                key_value_pair, _, comment = line.partition('#') # necessary to not get dirty values
-                key_value_pair = key_value_pair.strip()
-
-                if key_value_pair.startswith(key + "="):
-                    append_log(f"{key} found")
-                    value = key_value_pair.split("=")[1].strip().strip('"')
-                    return value
-    except Exception as e:
-        append_log(f"{config_file} not found. {e}")
-        return ""
-
-    return ""
             
 def send_email(subject, to_address, mail_body_html, attachment_files, email_config, provider, bulk_email):
     """
@@ -298,18 +271,12 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                 append_log(f"start parsing headers")          
                 msg = MIMEMultipart()
                 append_log(f"parsing data from config") 
-                fallback_fromname = getMRconfigvalue("FromName") # we need a FromName setting into mr config
-                fallback_fromemail = getMRconfigvalue("From")
-                
-                if fallback_fromname and fallback_fromemail:
-                    msg['From'] = f"{fallback_fromname} <{fallback_fromemail}>"
-                    append_log(f"using fallback fromname") 
-                elif fallback_fromemail: 
-                    msg['From'] = fallback_fromemail
-                    append_log(f"using fallback fromemail")         
-                else:
-                    append_log(f"can't find a from setting. Gmail will apply the default")  
-                    
+                if email_config['fromname']:
+                    msg['From'] = f"{email_config['fromname']} <{email_config['fromemail']}>"
+                    append_log(f"using fromname")
+                else: 
+                    msg['From'] = email_config['fromemail']
+                    append_log(f"using fromemail")
                 msg['to'] = to_address
                 msg['subject'] = subject
                         
