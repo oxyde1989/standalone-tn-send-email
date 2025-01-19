@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import smtplib, json, argparse, os, time, base64, subprocess, socket, uuid
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
