@@ -10,7 +10,7 @@ from email.utils import formatdate
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
-##### V 0.07
+##### V 0.08
 ##### Stand alone script to send email via Truenas
 
 def validate_arguments(args):
