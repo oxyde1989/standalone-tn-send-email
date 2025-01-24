@@ -10,7 +10,7 @@ from email.utils import formatdate
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
-##### V 0.09
+##### V 0.10
 ##### Stand alone script to send email via Truenas
 
 def validate_arguments(args):
@@ -36,7 +36,7 @@ def create_log_file():
     else:    
         log_files = [f for f in os.listdir(log_dir) if f.endswith('.txt') and os.path.isfile(os.path.join(log_dir, f))]
         log_file_count = len( log_files )
-        if log_file_count >= 15: #wanna delete oldest log file to not let them increase overall
+        if log_file_count >= 15:
             oldest_file = min(log_files, key=lambda f: os.path.getctime(os.path.join(log_dir, f)))   
             os.remove(os.path.join(log_dir, oldest_file))         
 
@@ -66,7 +66,7 @@ def process_output(error, detail="", exit_code=None):
     """                   
     response = json.dumps({"error": error, "detail": detail, "logfile": log_file, "total_attach": attachment_count, "ok_attach": attachment_ok_count}, ensure_ascii=False)
     append_log(f"{detail}") 
-    print(response) # caller must intercept this if wanna do something with the result of this process
+    print(response)
     if exit_code is not None:
         exit(exit_code)
 
@@ -74,16 +74,17 @@ def read_config_data():
     """
      function for read the mail.config from midclt 
     """    
-    append_log(f"trying read mail.config") 
+    append_log("trying read mail.config") 
     midclt_output = subprocess.run(
-        ["midclt", "call", "mail.config"],
+        ["/usr/bin/midclt", "call", "mail.config"],
         capture_output=True,
-        text=True
+        text=True,
+        check=True
     )
     if midclt_output.returncode != 0:
         process_output(True, f"Failed to call midclt: {midclt_output.stderr.strip()}", 1)
         
-    append_log(f"read mail.config successfully")                
+    append_log("read mail.config successfully")                
     midclt_config = json.loads(midclt_output.stdout)
     return midclt_config
 
@@ -93,14 +94,14 @@ def load_html_content(input_content):
     """
     try:        
         if len(input_content) > 255:
-            append_log(f"body can't be a file, too much long")
+            append_log("body can't be a file, too much long")
             return input_content
         elif os.path.exists(input_content):
             with open(input_content, 'r') as f:
                 append_log(f"body is a file") 
                 return f.read()
         else:
-            append_log(f"no file found, plain text/html output") 
+            append_log("no file found, plain text/html output") 
             return input_content            
     except Exception as e:
         process_output(True, f"Something wrong on body content {e}", 1)  
@@ -111,7 +112,7 @@ def validate_base64_content(input_content):
     """      
     try:
         base64.b64decode(input_content, validate=True) 
-        append_log(f"Base64 message is valid.")
+        append_log("Base64 message is valid.")
     except Exception as e:
         process_output(True, f"Error: Invalid Base64 content. {e}", 1)   
                             
@@ -149,7 +150,7 @@ def getMRconfigvalue(key):
     """
     Function to get eventually multi report value from config, passing the key > the name of the setting
     """    
-    config_file = "multi_report_config.txt" #default
+    config_file = "multi_report_config.txt" 
     
     if not os.path.exists(config_file):
         append_log(f"{config_file} not found")
@@ -159,7 +160,7 @@ def getMRconfigvalue(key):
         with open(config_file, "r") as file:
             for line in file:
                 line = line.strip()
-                key_value_pair, _, comment = line.partition('#') # necessary to not get dirty values
+                key_value_pair, _, comment = line.partition('#')
                 key_value_pair = key_value_pair.strip()
 
                 if key_value_pair.startswith(key + "="):
@@ -177,9 +178,9 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
     Function to send an email via SMTP or Gmail OAuth based on the provider available
     """
     attachment_ok_count = 0  
-    if provider == "smtp":  #smtp version
+    if provider == "smtp":
         try:
-            append_log(f"parsing smtp config") 
+            append_log("parsing smtp config") 
             smtp_security = email_config["security"]
             smtp_server = email_config["outgoingserver"]
             smtp_port = email_config["port"]
@@ -188,15 +189,15 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
             smtp_fromemail = email_config['fromemail']
             smtp_fromname = email_config['fromname']
             
-            append_log(f"switch from classic send and bulk email")    
+            append_log("switch from classic send and bulk email")    
             if mail_body_html:
-                append_log(f"mail hmtl provided")
-                append_log(f"parsing html content") 
+                append_log("mail hmtl provided")
+                append_log("parsing html content") 
                 html_content = load_html_content(mail_body_html)
 
-                append_log(f"start parsing headers")
+                append_log("start parsing headers")
                 msg = MIMEMultipart()
-                append_log(f"parsing data from config") 
+                append_log("parsing data from config") 
                 if smtp_fromname:
                     msg['From'] = f"{smtp_fromname} <{smtp_fromemail}>"
                     append_log(f"using fromname {smtp_fromname}")
@@ -210,11 +211,11 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                 append_log(f"generate a message ID using {smtp_user}")
                 try:
                     messageid_domain = smtp_user.split("@")[1]
-                except:
+                except Exception:
                     append_log(f"{smtp_user} not a valid address, tryng on {smtp_fromemail}")
                     try:
                         messageid_domain = smtp_fromemail.split("@")[1]
-                    except:
+                    except Exception:
                         append_log(f"{smtp_fromemail} not a valid address, need to use a fallback ")
                         messageid_domain = "local.me"
                 append_log(f"domain: {messageid_domain}")
@@ -228,116 +229,113 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                 
                 append_log(f"check for attachements...") 
                 if attachment_files:
-                    append_log(f"attachments found") 
+                    append_log("attachments found") 
                     attachment_ok_count = attach_files(msg, attachment_files, attachment_ok_count)
                     append_log(f"{attachment_ok_count} ok attachments") 
                     
-                append_log(f"get hostname")     
+                append_log("get hostname")     
                 hostname = socket.getfqdn()
                 if not hostname:
                     hostname = socket.gethostname()  
                 append_log(f"hostname retrieved: {hostname}")   
             
             elif bulk_email:
-                append_log(f"using bulk email provided")
+                append_log("using bulk email provided")
                 msg = load_html_content(bulk_email)
                 validate_base64_content(msg)  
             else:
-                process_output(True, f"Something wrong with the data input", 1)
+                process_output(True, "Something wrong with the data input", 1)
 
             append_log(f"establing connection based on security level set on TN: {smtp_security}") 
             if smtp_security == "TLS":
                 with smtplib.SMTP(smtp_server, smtp_port) as server:
                     append_log(f"entered {smtp_security} path")   
-                    #server.set_debuglevel(1)  #### this line can be uncommented if more debug is needed 
-                    append_log(f"adding ehlo to the message")                   
+                    append_log("adding ehlo to the message")                   
                     server.ehlo(hostname)      
-                    append_log(f"establing TLS connection")    
+                    append_log("establing TLS connection")    
                     server.starttls()
-                    append_log(f"entering credentials") 
+                    append_log("entering credentials") 
                     server.login(smtp_user, smtp_password)
                     append_log(f"sending {smtp_security} email") 
                     server.sendmail(smtp_user, to_address, msg.as_string())
             elif smtp_security == "SSL":
                 with smtplib.SMTP_SSL(smtp_server, smtp_port) as server:
                     append_log(f"entered {smtp_security} path")   
-                    #server.set_debuglevel(1)  #### this line can be uncommented if more debug is needed    
-                    append_log(f"adding ehlo to the message")                
+                    append_log("adding ehlo to the message")                
                     server.ehlo(hostname)         
-                    append_log(f"entering credentials") 
+                    append_log("entering credentials") 
                     server.login(smtp_user, smtp_password)
                     append_log(f"sending {smtp_security} email") 
                     server.sendmail(smtp_user, to_address, msg.as_string())
             elif smtp_security == "PLAIN":
                 with smtplib.SMTP(smtp_server, smtp_port) as server:
                     append_log(f"entered {smtp_security} path")   
-                    #server.set_debuglevel(1)  #### this line can be uncommented if more debug is needed    
-                    append_log(f"adding ehlo to the message")  
+                    append_log("adding ehlo to the message")  
                     server.ehlo(hostname)
-                    append_log(f"entering credentials")
+                    append_log("entering credentials")
                     server.login(smtp_user, smtp_password)
                     append_log(f"sending {smtp_security} email") 
                     server.sendmail(smtp_user, to_address, msg.as_string())        
             else:
-                process_output(True, f"KO: something wrong switching SMTP security level", 1)             
+                process_output(True, "KO: something wrong switching SMTP security level", 1)             
 
-            append_log(f"Email Sent via SMTP")
+            append_log("Email Sent via SMTP")
 
         except Exception as e:
             process_output(True, f"KO: {e}", 1)
 
-    elif provider == "gmail":  # gmail version
+    elif provider == "gmail": 
         try:
-            append_log(f"parsing Oauth config") 
+            append_log("parsing Oauth config") 
             credentials = Credentials.from_authorized_user_info(email_config["oauth"])
             service = build('gmail', 'v1', credentials=credentials)
             
-            append_log(f"switch from classic send and bulk email")     
+            append_log("switch from classic send and bulk email")     
             if mail_body_html:                  
-                append_log(f"mail hmtl provided")
-                append_log(f"start parsing headers")          
+                append_log("mail hmtl provided")
+                append_log("start parsing headers")          
                 msg = MIMEMultipart()
-                append_log(f"parsing data from config") 
-                fallback_fromname = getMRconfigvalue("FromName") # we need a FromName setting into mr config
+                append_log("parsing data from config") 
+                fallback_fromname = getMRconfigvalue("FromName")
                 fallback_fromemail = getMRconfigvalue("From")
                 
                 if fallback_fromname and fallback_fromemail:
                     msg['From'] = f"{fallback_fromname} <{fallback_fromemail}>"
-                    append_log(f"using fallback fromname") 
+                    append_log("using fallback fromname") 
                 elif fallback_fromemail: 
                     msg['From'] = fallback_fromemail
-                    append_log(f"using fallback fromemail")         
+                    append_log("using fallback fromemail")         
                 else:
-                    append_log(f"can't find a from setting. Gmail will apply the default")  
+                    append_log("can't find a from setting. Gmail will apply the default")  
                     
                 msg['to'] = to_address
                 msg['subject'] = subject
                         
-                append_log(f"parsing html content") 
+                append_log("parsing html content") 
                 html_content = load_html_content(mail_body_html)            
                 msg.attach(MIMEText(html_content, 'html'))
                 
-                append_log(f"check for attachements...") 
+                append_log("check for attachements...") 
                 if attachment_files:
-                    append_log(f"attachments found") 
+                    append_log("attachments found") 
                     attachment_ok_count = attach_files(msg, attachment_files, attachment_ok_count)
                     append_log(f"{attachment_ok_count} ok attachments")   
                       
-                append_log(f"Encoding message")     
+                append_log("Encoding message")     
                 raw_message = msg.as_bytes() 
                 msg = base64.urlsafe_b64encode(raw_message).decode('utf-8')                
                     
             elif bulk_email:
-                append_log(f"using bulk email provided")
+                append_log("using bulk email provided")
                 msg = load_html_content(bulk_email)
                 validate_base64_content(msg)          
             else:
-                process_output(True, f"Something wrong with the data input", 1)                                                     
+                process_output(True, "Something wrong with the data input", 1)                                                     
             
-            append_log(f"sending email")           
-            message = service.users().messages().send(userId="me", body={'raw': msg}).execute()
+            append_log("sending email")           
+            service.users().messages().send(userId="me", body={'raw': msg}).execute()
             
-            append_log(f"Email Sent via Gmail")
+            append_log("Email Sent via Gmail")
             return attachment_ok_count
 
         except Exception as e:
@@ -361,7 +359,7 @@ if __name__ == "__main__":
 
     try:
         attachment_count = calc_attachment_count(args.attachment_files)      
-        attachment_ok_count = 0 #avoid error if except are raised
+        attachment_ok_count = 0
         
         log_file, log_file_count = create_log_file()
         append_log(f"File {log_file} successfully generated")
@@ -370,16 +368,16 @@ if __name__ == "__main__":
         append_log(f"{attachment_count} totals attachment") 
         
         email_config = read_config_data()
-        append_log(f"Switching for the right provider")
+        append_log("Switching for the right provider")
         provider = ""
         if "smtp" in email_config and email_config["smtp"] and not email_config.get("oauth"):
             provider = "smtp"
-            append_log(f"** SMTP Version **")    
+            append_log("** SMTP Version **")    
         elif "oauth" in email_config and email_config["oauth"]:
             provider = "gmail"
-            append_log(f"** Gmail OAuth version **")                     
+            append_log("** Gmail OAuth version **")                     
         else:
-            process_output(True, f"Can't switch provider", 1)
+            process_output(True, "Can't switch provider", 1)
             
         attachment_ok_count = send_email(args.subject, args.to_address, args.mail_body_html, args.attachment_files, email_config, provider, args.mail_bulk)
         
@@ -387,8 +385,8 @@ if __name__ == "__main__":
             attachment_ok_count = 0
         
         if attachment_ok_count == attachment_count:
-            process_output(False, f">> All is Good <<", 0)
+            process_output(False, ">> All is Good <<", 0)
         else:
-            process_output(False, f">> Soft warning: something wrong with 1 or more attachments, check logs for more info >>", 0)
+            process_output(False, ">> Soft warning: something wrong with 1 or more attachments, check logs for more info >>", 0)
     except Exception as e:
         process_output(True, f"Error: {e}", 1)
