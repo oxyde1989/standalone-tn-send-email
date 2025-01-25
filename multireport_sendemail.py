@@ -7,10 +7,11 @@ from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
 from email.utils import formatdate
+from email import message_from_string
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
-##### V 0.11
+##### V 0.12
 ##### Stand alone script to send email via Truenas
 
 def validate_arguments(args):
@@ -20,10 +21,9 @@ def validate_arguments(args):
     if not args.mail_bulk and not args.mail_body_html:
         print("Error: You must provide at least --mail_bulk or --mail_body_html.")
         exit(1)
-    if args.mail_body_html:
-        if not args.subject or not args.to_address:
-            print("Error: If --mail_body_html is provided, both --subject and --to_address are required.")
-            exit(1)
+    if args.mail_body_html and (not args.subject or not args.to_address):
+        print("Error: If --mail_body_html is provided, both --subject and --to_address are required.")
+        exit(1)
 
 def create_log_file():
     """
@@ -45,7 +45,7 @@ def create_log_file():
 
     if not os.path.exists(log_file_path):
         with open(log_file_path, 'w') as f:
-            pass 
+            pass
 
     return log_file_path, log_file_count
 
@@ -160,7 +160,7 @@ def getMRconfigvalue(key):
         with open(config_file, "r") as file:
             for line in file:
                 line = line.strip()
-                key_value_pair, _, comment = line.partition('#')
+                key_value_pair, _, _ = line.partition('#')
                 key_value_pair = key_value_pair.strip()
 
                 if key_value_pair.startswith(key + "="):
@@ -241,9 +241,24 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
             
             elif bulk_email:
                 append_log("using bulk email provided")
-                msg = load_html_content(bulk_email)
-                validate_base64_content(msg) 
-                hostname = "" 
+                hostname = ""
+                pre_msg = load_html_content(bulk_email)
+                if not pre_msg:
+                    append_log("can't properly retrieve bulk email")
+                validate_base64_content(pre_msg) 
+                try:
+                    decoded_msg = base64.b64decode(pre_msg).decode('utf-8')
+                    append_log("bulk email successfully decoded from Base64")
+                    mime_msg = message_from_string(decoded_msg)
+                    to_address = mime_msg['To']
+                    if to_address:
+                        append_log(f"recipient retrieved")
+                        msg = mime_msg
+                    else:
+                        process_output(True, "failed retriving recipient", 1)    
+                except Exception as e:
+                    process_output(True, f"Error decoding Base64 content: {e}", 1)                
+                 
             else:
                 process_output(True, "Something wrong with the data input", 1)
 
