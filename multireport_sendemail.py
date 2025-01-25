@@ -10,7 +10,7 @@ from email.utils import formatdate
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
-##### V 0.10
+##### V 0.11
 ##### Stand alone script to send email via Truenas
 
 def validate_arguments(args):
@@ -98,7 +98,7 @@ def load_html_content(input_content):
             return input_content
         elif os.path.exists(input_content):
             with open(input_content, 'r') as f:
-                append_log(f"body is a file") 
+                append_log("body is a file") 
                 return f.read()
         else:
             append_log("no file found, plain text/html output") 
@@ -227,7 +227,7 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                 msg['Date'] = formatdate(localtime=True) #
                 
                 
-                append_log(f"check for attachements...") 
+                append_log("check for attachements...") 
                 if attachment_files:
                     append_log("attachments found") 
                     attachment_ok_count = attach_files(msg, attachment_files, attachment_ok_count)
@@ -242,16 +242,18 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
             elif bulk_email:
                 append_log("using bulk email provided")
                 msg = load_html_content(bulk_email)
-                validate_base64_content(msg)  
+                validate_base64_content(msg) 
+                hostname = "" 
             else:
                 process_output(True, "Something wrong with the data input", 1)
 
             append_log(f"establing connection based on security level set on TN: {smtp_security}") 
             if smtp_security == "TLS":
                 with smtplib.SMTP(smtp_server, smtp_port) as server:
-                    append_log(f"entered {smtp_security} path")   
-                    append_log("adding ehlo to the message")                   
-                    server.ehlo(hostname)      
+                    append_log(f"entered {smtp_security} path")                        
+                    if hostname:        
+                        append_log("adding ehlo to the message")          
+                        server.ehlo(hostname)      
                     append_log("establing TLS connection")    
                     server.starttls()
                     append_log("entering credentials") 
@@ -261,8 +263,9 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
             elif smtp_security == "SSL":
                 with smtplib.SMTP_SSL(smtp_server, smtp_port) as server:
                     append_log(f"entered {smtp_security} path")   
-                    append_log("adding ehlo to the message")                
-                    server.ehlo(hostname)         
+                    if hostname:        
+                        append_log("adding ehlo to the message")          
+                        server.ehlo(hostname)          
                     append_log("entering credentials") 
                     server.login(smtp_user, smtp_password)
                     append_log(f"sending {smtp_security} email") 
@@ -270,8 +273,9 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
             elif smtp_security == "PLAIN":
                 with smtplib.SMTP(smtp_server, smtp_port) as server:
                     append_log(f"entered {smtp_security} path")   
-                    append_log("adding ehlo to the message")  
-                    server.ehlo(hostname)
+                    if hostname:        
+                        append_log("adding ehlo to the message")          
+                        server.ehlo(hostname)  
                     append_log("entering credentials")
                     server.login(smtp_user, smtp_password)
                     append_log(f"sending {smtp_security} email") 
