@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import smtplib, json, argparse, os, time, base64, subprocess, socket, uuid
+import smtplib, json, argparse, os, stat, time, base64, subprocess, socket, uuid
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -11,12 +11,12 @@ from email import message_from_string
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
-##### V 0.12
+##### V 0.13
 ##### Stand alone script to send email via Truenas
 
 def validate_arguments(args):
     """
-        new function for an easier validation of the args passed to the function, due the fact there are now 2 calls methods
+        new function for an easier validation of the args passed to the function, due the fact there are now 2 calls methods. If mail_body_html is passed, nor subject and to_address are mandatory
     """
     if not args.mail_bulk and not args.mail_body_html:
         print("Error: You must provide at least --mail_bulk or --mail_body_html.")
@@ -24,30 +24,68 @@ def validate_arguments(args):
     if args.mail_body_html and (not args.subject or not args.to_address):
         print("Error: If --mail_body_html is provided, both --subject and --to_address are required.")
         exit(1)
+    if not os.access(os.getcwd(), os.W_OK):
+        print(f"Current user doesn't have permission in the execution folder: {os.getcwd()}")
+        exit(1)     
+    sfw = is_secure_directory()
+    if sfw:
+        print(f"{sfw}")
+        
+def is_secure_directory(directory_to_check=None):
+    """
+        this function help to report eventually security concerns about the usage context of the script. Promemorial: The function itself not log anything, output should be used when logfile available
+    """
+    try:
+        directory_to_check = directory_to_check or os.getcwd()
+        stat_info  = os.stat(directory_to_check)
+        append_message = ""
+        if stat_info .st_uid != os.getuid():
+            append_message = f"\nSecurity Warning: The current user (UID={os.getuid()}) is not the owner of the directory '{directory_to_check}' (Owner UID={stat_info .st_uid})."
+        if bool(stat_info .st_mode & stat.S_IWOTH):
+            append_message = append_message + "\nSecurity Warning: this folder is accessible to non-priviliged users that are nor owner or in group"
+        return append_message  
+    except Exception as e:
+        print(f"Something wrong checking security issue: {e} checking {directory_to_check}")
+        exit(1)          
 
 def create_log_file():
     """
-        We setup a folder called sendemail_log where store log's file on every start. Oldest mrlog folder can be safely deleted
-    """       
-    log_dir = os.path.join(os.getcwd(), 'sendemail_log')
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
-        log_file_count = 0
-    else:    
-        log_files = [f for f in os.listdir(log_dir) if f.endswith('.txt') and os.path.isfile(os.path.join(log_dir, f))]
-        log_file_count = len( log_files )
-        if log_file_count >= 15:
-            oldest_file = min(log_files, key=lambda f: os.path.getctime(os.path.join(log_dir, f)))   
-            os.remove(os.path.join(log_dir, oldest_file))         
+        We setup a folder called sendemail_log where store log's file on every start. Every Logfiles can be safely deleted, but the script itself will only retain just the newest 15.
+        Starting from 0.13 sendemail_log folder will be forced to 700 and log files to 600
+    """   
+    try:    
+        log_dir = os.path.join(os.getcwd(), 'sendemail_log')
+        
+        if os.path.islink(log_dir):
+            print(f"Something wrong is happening here: the sendemail_log folder is a symlink")
+            exit(1)  
+        
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
+            os.chmod(log_dir, 0o700)
+            log_file_count = 0
+        else:    
+            current_log_dir_permissions = stat.S_IMODE(os.stat(log_dir).st_mode)
+            if current_log_dir_permissions != 0o700:
+                os.chmod(log_dir, 0o700)
+                
+            log_files = [f for f in os.listdir(log_dir) if f.endswith('.txt') and os.path.isfile(os.path.join(log_dir, f)) and not os.path.islink(os.path.join(log_dir, f))]
+            log_file_count = len( log_files )
+            if log_file_count >= 15:
+                oldest_file = min(log_files, key=lambda f: os.path.getctime(os.path.join(log_dir, f)))   
+                os.remove(os.path.join(log_dir, oldest_file))         
 
-    timestamp = time.strftime("%Y%m%d_%H%M%S", time.localtime())
-    log_file_path = os.path.join(log_dir, f"{timestamp}.txt")
+        timestamp = time.strftime("%Y%m%d_%H%M%S", time.localtime())
+        log_file_path = os.path.join(log_dir, f"{timestamp}.txt")
 
-    if not os.path.exists(log_file_path):
-        with open(log_file_path, 'w') as f:
-            pass
-
-    return log_file_path, log_file_count
+        if not os.path.exists(log_file_path):
+            with open(log_file_path, 'w') as f:
+                pass
+            os.chmod(log_file_path, 0o600)
+        return log_file_path, log_file_count
+    except Exception as e:
+        print(f"Something wrong managing logs: {e}")
+        exit(1)          
 
 def append_log(content):
     """
@@ -252,7 +290,7 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                     mime_msg = message_from_string(decoded_msg)
                     to_address = mime_msg['To']
                     if to_address:
-                        append_log(f"recipient retrieved")
+                        append_log("recipient retrieved")
                         msg = mime_msg
                     else:
                         process_output(True, "failed retriving recipient", 1)    
@@ -365,12 +403,12 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                                 
   
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Workaround to send email easily in Multi Report")
-    parser.add_argument("--subject", help="Email subject")
-    parser.add_argument("--to_address", help="Recipient")
-    parser.add_argument("--mail_body_html", help="File path for the email body, or just a plain text/html")
+    parser = argparse.ArgumentParser(description="Workaround to send email easily in Multi Report using Truenas mail.config")
+    parser.add_argument("--subject", help="Email subject. Mandatory when using -mail_body_html")
+    parser.add_argument("--to_address", help="Recipient email address. Mandatory when using -mail_body_html")
+    parser.add_argument("--mail_body_html", help="File path for the email body, or just a plain text/html. No encoding needed")
     parser.add_argument("--attachment_files", nargs='*', help="OPTIONAL attachments as json file path array. No ecoding needed")
-    parser.add_argument("--mail_bulk", help="Bulk email with all necessary parts, encoded and combined. File path or plain text supported")
+    parser.add_argument("--mail_bulk", help="Bulk email with all necessary parts, encoded and combined together. File path or plain text supported. Content must be served as Base64 without newline /n, the recipient will be get from the To in the message")
 
     args = parser.parse_args()
     
@@ -403,9 +441,14 @@ if __name__ == "__main__":
         if attachment_ok_count is None:
             attachment_ok_count = 0
         
-        if attachment_ok_count == attachment_count:
-            process_output(False, ">> All is Good <<", 0)
-        else:
-            process_output(False, ">> Soft warning: something wrong with 1 or more attachments, check logs for more info >>", 0)
+        final_output_message = "<< Email Sent >>"
+        
+        if attachment_ok_count < attachment_count:
+            final_output_message = final_output_message + "\n>> Soft warning: something wrong with 1 or more attachments, check logs for more info >>"
+
+        final_output_message = final_output_message + is_secure_directory()
+            
+        process_output(False, f"{final_output_message}", 0)
+        
     except Exception as e:
         process_output(True, f"Error: {e}", 1)
