@@ -11,7 +11,7 @@ from email import message_from_string
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
-##### V 0.13
+##### V 0.14
 ##### Stand alone script to send email via Truenas
 
 def validate_arguments(args):
@@ -51,23 +51,29 @@ def is_secure_directory(directory_to_check=None):
 def create_log_file():
     """
         We setup a folder called sendemail_log where store log's file on every start. Every Logfiles can be safely deleted, but the script itself will only retain just the newest 15.
-        Starting from 0.13 sendemail_log folder will be forced to 700 and log files to 600
+        Starting from 0.13 sendemail_log folder will be forced to 700 and log files to 600. Also symlinks will be ignored
     """   
     try:    
         log_dir = os.path.join(os.getcwd(), 'sendemail_log')
         
         if os.path.islink(log_dir):
-            print(f"Something wrong is happening here: the sendemail_log folder is a symlink")
+            print("Something wrong is happening here: the sendemail_log folder is a symlink")
             exit(1)  
         
         if not os.path.exists(log_dir):
             os.makedirs(log_dir)
-            os.chmod(log_dir, 0o700)
+            try:
+                os.chmod(log_dir, 0o700)
+            except Exception as e:
+                print(f"Can't apply permission to log folder {e}")
             log_file_count = 0
         else:    
             current_log_dir_permissions = stat.S_IMODE(os.stat(log_dir).st_mode)
             if current_log_dir_permissions != 0o700:
-                os.chmod(log_dir, 0o700)
+                try:
+                    os.chmod(log_dir, 0o700)
+                except Exception as e:
+                    print(f"Can't apply permission to log folder {e}")
                 
             log_files = [f for f in os.listdir(log_dir) if f.endswith('.txt') and os.path.isfile(os.path.join(log_dir, f)) and not os.path.islink(os.path.join(log_dir, f))]
             log_file_count = len( log_files )
@@ -81,7 +87,10 @@ def create_log_file():
         if not os.path.exists(log_file_path):
             with open(log_file_path, 'w') as f:
                 pass
-            os.chmod(log_file_path, 0o600)
+            try:
+                os.chmod(log_file_path, 0o600)
+            except Exception as e:
+                print(f"Can't apply permission to log file {e}")                
         return log_file_path, log_file_count
     except Exception as e:
         print(f"Something wrong managing logs: {e}")
