@@ -11,7 +11,7 @@ from email import message_from_string
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
-##### V 0.16
+##### V 0.17
 ##### Stand alone script to send email via Truenas
 
 def validate_arguments(args):
@@ -327,11 +327,8 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                     if smtp_login:
                         append_log("entering credentials") 
                         server.login(smtp_user, smtp_password)
-                    else:
-                        smtp_user = smtp_fromemail
-                        append_log(f"smtp set to {smtp_login}")
                     append_log(f"sending {smtp_security} email") 
-                    server.sendmail(smtp_user, to_address, msg.as_string())
+                    server.sendmail(smtp_fromemail, to_address, msg.as_string())
             elif smtp_security == "SSL":
                 with smtplib.SMTP_SSL(smtp_server, smtp_port) as server:
                     append_log(f"entered {smtp_security} path")   
@@ -341,11 +338,8 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                     if smtp_login:           
                         append_log("entering credentials") 
                         server.login(smtp_user, smtp_password)
-                    else:
-                        smtp_user = smtp_fromemail
-                        append_log(f"smtp set to {smtp_login}")
                     append_log(f"sending {smtp_security} email") 
-                    server.sendmail(smtp_user, to_address, msg.as_string())
+                    server.sendmail(smtp_fromemail, to_address, msg.as_string())
             elif smtp_security == "PLAIN":
                 with smtplib.SMTP(smtp_server, smtp_port) as server:
                     append_log(f"entered {smtp_security} path")   
@@ -354,12 +348,9 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                         server.ehlo(hostname)  
                     if smtp_login:    
                         append_log("entering credentials")
-                        server.login(smtp_user, smtp_password)
-                    else:
-                        smtp_user = smtp_fromemail
-                        append_log(f"smtp set to {smtp_login}")    
+                        server.login(smtp_user, smtp_password)   
                     append_log(f"sending {smtp_security} email") 
-                    server.sendmail(smtp_user, to_address, msg.as_string())        
+                    server.sendmail(smtp_fromemail, to_address, msg.as_string())        
             else:
                 process_output(True, "KO: something wrong switching SMTP security level", 1)             
 
