@@ -4,6 +4,10 @@
 
 ---
 
+### BREAK CHANGE FOR 25.04 RC1 USER:
+### The new Outlook oauth IS NOT YET supported
+---
+
 ### What this script do
 Starting from Truenas 24.10.10, the `sendemail` function is no longer available, removed for security reason.  <br>
 This standalone script provides the ability to send emails and attachments using the TrueNAS native `mail.config`, so at least `READONLY_ADMIN`, `SHARING_ADMIN` roles are needed to run correctly the script.<br>
