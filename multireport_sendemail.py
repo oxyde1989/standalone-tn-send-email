@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import smtplib, json, argparse, os, stat, time, base64, subprocess, socket, uuid
+import smtplib, json, argparse, os, stat, time, base64, subprocess, socket, uuid, requests
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -11,7 +11,7 @@ from email import message_from_string
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
-##### V 0.17
+##### V 1.00
 ##### Stand alone script to send email via Truenas
 
 def validate_arguments(args):
@@ -24,87 +24,96 @@ def validate_arguments(args):
     if args.mail_body_html and (not args.subject or not args.to_address):
         print("Error: If --mail_body_html is provided, both --subject and --to_address are required.")
         exit(1)
-    if not os.access(os.getcwd(), os.W_OK):
-        print(f"Current user doesn't have permission in the execution folder: {os.getcwd()}")
-        exit(1)     
-    sfw = is_secure_directory()
-    if sfw:
-        print(f"{sfw}")
+    if args.debug_enabled:
+        if not os.access(os.getcwd(), os.W_OK):
+            print(f"Current user doesn't have permission in the execution folder: {os.getcwd()}")
+            exit(1)     
+        sfw = is_secure_directory()
+        if sfw:
+            print(f"{sfw}")
         
 def is_secure_directory(directory_to_check=None):
     """
         this function help to report eventually security concerns about the usage context of the script. Promemorial: The function itself not log anything, output should be used when logfile available
     """
-    try:
-        directory_to_check = directory_to_check or os.getcwd()
-        stat_info  = os.stat(directory_to_check)
-        append_message = ""
-        if stat_info .st_uid != os.getuid():
-            append_message = f"Security Advice: The current user (UID={os.getuid()}) is not the owner of the directory '{directory_to_check}' (Owner UID={stat_info .st_uid})."
-        if bool(stat_info .st_mode & stat.S_IWOTH):
-            append_message = append_message + "SECURITY WARNING: this folder is accessible to non-priviliged users that are nor owner or in group"
-        return append_message  
-    except Exception as e:
-        print(f"Something wrong checking security issue: {e} checking {directory_to_check}")
-        exit(1)          
+    if not args.debug_enabled:    
+        return ""
+    else:    
+        try:
+            directory_to_check = directory_to_check or os.getcwd()
+            stat_info  = os.stat(directory_to_check)
+            append_message = ""
+            if stat_info .st_uid != os.getuid():
+                append_message = f"Security Advice: The current user (UID={os.getuid()}) is not the owner of the directory '{directory_to_check}' (Owner UID={stat_info .st_uid})."
+            if bool(stat_info .st_mode & stat.S_IWOTH):
+                append_message = append_message + "SECURITY WARNING: this folder is accessible to non-priviliged users that are nor owner or in group"
+            return append_message  
+        except Exception as e:
+            print(f"Something wrong checking security issue: {e} checking {directory_to_check}")
+            exit(1)          
 
 def create_log_file():
     """
         We setup a folder called sendemail_log where store log's file on every start. Every Logfiles can be safely deleted, but the script itself will only retain just the newest 15.
         Starting from 0.13 sendemail_log folder will be forced to 700 and log files to 600. Also symlinks will be ignored
     """   
-    try:    
-        log_dir = os.path.join(os.getcwd(), 'sendemail_log')
-        
-        if os.path.islink(log_dir):
-            print("Something wrong is happening here: the sendemail_log folder is a symlink")
-            exit(1)  
-        
-        if not os.path.exists(log_dir):
-            os.makedirs(log_dir)
-            try:
-                os.chmod(log_dir, 0o700)
-            except Exception as e:
-                print(f"Can't apply permission to log folder {e}")
-            log_file_count = 0
-        else:    
-            current_log_dir_permissions = stat.S_IMODE(os.stat(log_dir).st_mode)
-            if current_log_dir_permissions != 0o700:
+    
+    if not args.debug_enabled:    
+        return None, 0
+    else:
+        try:    
+            log_dir = os.path.join(os.getcwd(), 'sendemail_log')
+            
+            if os.path.islink(log_dir):
+                print("Something wrong is happening here: the sendemail_log folder is a symlink")
+                exit(1)  
+            
+            if not os.path.exists(log_dir):
+                os.makedirs(log_dir)
                 try:
                     os.chmod(log_dir, 0o700)
                 except Exception as e:
                     print(f"Can't apply permission to log folder {e}")
-                
-            log_files = [f for f in os.listdir(log_dir) if f.endswith('.txt') and os.path.isfile(os.path.join(log_dir, f)) and not os.path.islink(os.path.join(log_dir, f))]
-            log_file_count = len( log_files )
-            if log_file_count >= 15:
-                oldest_file = min(log_files, key=lambda f: os.path.getctime(os.path.join(log_dir, f)))   
-                os.remove(os.path.join(log_dir, oldest_file))         
+                log_file_count = 0
+            else:    
+                current_log_dir_permissions = stat.S_IMODE(os.stat(log_dir).st_mode)
+                if current_log_dir_permissions != 0o700:
+                    try:
+                        os.chmod(log_dir, 0o700)
+                    except Exception as e:
+                        print(f"Can't apply permission to log folder {e}")
+                    
+                log_files = [f for f in os.listdir(log_dir) if f.endswith('.txt') and os.path.isfile(os.path.join(log_dir, f)) and not os.path.islink(os.path.join(log_dir, f))]
+                log_file_count = len( log_files )
+                if log_file_count >= 15:
+                    oldest_file = min(log_files, key=lambda f: os.path.getctime(os.path.join(log_dir, f)))   
+                    os.remove(os.path.join(log_dir, oldest_file))         
 
-        timestamp = time.strftime("%Y%m%d_%H%M%S", time.localtime())
-        log_file_path = os.path.join(log_dir, f"{timestamp}.txt")
+            timestamp = time.strftime("%Y%m%d_%H%M%S", time.localtime())
+            log_file_path = os.path.join(log_dir, f"{timestamp}.txt")
 
-        if not os.path.exists(log_file_path):
-            with open(log_file_path, 'w') as f:
-                pass
-            try:
-                os.chmod(log_file_path, 0o600)
-            except Exception as e:
-                print(f"Can't apply permission to log file {e}")                
-        return log_file_path, log_file_count
-    except Exception as e:
-        print(f"Something wrong managing logs: {e}")
-        exit(1)          
+            if not os.path.exists(log_file_path):
+                with open(log_file_path, 'w') as f:
+                    pass
+                try:
+                    os.chmod(log_file_path, 0o600)
+                except Exception as e:
+                    print(f"Can't apply permission to log file {e}")                
+            return log_file_path, log_file_count
+        except Exception as e:
+            print(f"Something wrong managing logs: {e}")
+            exit(1)          
 
 def append_log(content):
     """
         Centralized file log append
-    """      
-    try:
-        with open(log_file, 'a') as f:
-            f.write(content + '\n')
-    except Exception as e:
-        process_output(True, f"Error: {e}", 1)
+    """   
+    if args.debug_enabled:        
+        try:
+            with open(log_file, 'a') as f:
+                f.write(content + '\n')
+        except Exception as e:
+            process_output(True, f"Error: {e}", 1)
 
 def process_output(error, detail="", exit_code=None):
     """
@@ -133,6 +142,7 @@ def read_config_data():
         
     append_log("read mail.config successfully")                
     midclt_config = json.loads(midclt_output.stdout)
+    print
     return midclt_config
 
 def load_html_content(input_content):
@@ -219,6 +229,29 @@ def getMRconfigvalue(key):
         return ""
 
     return ""
+
+def get_outlook_access_token():
+    """get an access token using the tn refresh token in truenas"""
+    
+    append_log("retrieving access token") 
+    oauth_url = "https://login.microsoftonline.com/common/oauth2/v2.0/token"    
+    data = {
+        "client_id": email_config["oauth"]["client_id"],
+        "client_secret": email_config["oauth"]["client_secret"],
+        "refresh_token": email_config["oauth"]["refresh_token"],
+        "grant_type": "refresh_token",
+        "scope": "https://outlook.office.com/SMTP.Send openid offline_access"
+    }   
+    try:
+        response = requests.post(oauth_url, data=data)   
+        if response.status_code == 200:
+            append_log("got access token!") 
+            return response.json()["access_token"]
+        else:
+            process_output(True, f"response for the access token has an error: {response.text}", 1)   
+    except Exception as e:
+        process_output(True, f"A problem occurred retrieving access token: {e}", 1)
+
             
 def send_email(subject, to_address, mail_body_html, attachment_files, email_config, provider, bulk_email):
     """
@@ -371,15 +404,23 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                 append_log("start parsing headers")          
                 msg = MIMEMultipart()
                 append_log("parsing data from config") 
+                gmail_fromemail = email_config["fromemail"]
+                gmail_fromname = email_config["fromname"]                
                 fallback_fromname = getMRconfigvalue("FromName")
                 fallback_fromemail = getMRconfigvalue("From")
                 
                 if fallback_fromname and fallback_fromemail:
                     msg['From'] = f"{fallback_fromname} <{fallback_fromemail}>"
-                    append_log("using fallback fromname") 
+                    append_log("using mr-config fromname-email") 
+                elif gmail_fromemail and gmail_fromname:
+                    msg['From'] = f"{gmail_fromname} <{gmail_fromemail}>"
+                    append_log("using tn fromname-email") 
                 elif fallback_fromemail: 
                     msg['From'] = fallback_fromemail
-                    append_log("using fallback fromemail")         
+                    append_log("using mr-config fromemail") 
+                elif gmail_fromemail:   
+                    msg['From'] = gmail_fromemail
+                    append_log("using tn fromemail")                        
                 else:
                     append_log("can't find a from setting. Gmail will apply the default")  
                     
@@ -415,7 +456,114 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
 
         except Exception as e:
             process_output(True, f"KO: {e}", 1)
+            
+    elif provider == "outlook":
+        try:
+            new_access_token = get_outlook_access_token()
+            append_log("parsing smtp config for outlook") 
+            smtp_security = email_config["security"]
+            smtp_server = email_config["outgoingserver"]
+            smtp_port = email_config["port"]
+            smtp_fromemail = email_config["fromemail"]
+            smtp_fromname = email_config["fromname"]      
+                  
+            append_log("switch from classic send and bulk email")   
+            if mail_body_html:
+                append_log("mail hmtl provided")
+                append_log("parsing html content") 
+                html_content = load_html_content(mail_body_html)
 
+                append_log("start parsing headers")
+                msg = MIMEMultipart()
+                append_log("parsing data from config") 
+                if smtp_fromname:
+                    msg['From'] = f"{smtp_fromname} <{smtp_fromemail}>"
+                    append_log(f"using fromname {smtp_fromname}")
+                else: 
+                    msg['From'] = smtp_fromemail
+                    append_log(f"using fromemail {smtp_fromemail}")
+                msg['To'] = to_address
+                msg['Subject'] = subject
+                msg.attach(MIMEText(html_content, 'html'))
+                
+                append_log(f"generate a message ID using {smtp_fromemail}")
+                try:
+                    messageid_domain = smtp_fromemail.split("@")[1]
+                except Exception:
+                    append_log(f"{smtp_fromemail} not a valid address, need to use a fallback ")
+                    messageid_domain = "local.me"
+                    
+                append_log(f"domain: {messageid_domain}")
+                messageid_uuid = f"{datetime.now().strftime('%Y_%m_%d_%H_%M_%S_%f')[:-3]}{uuid.uuid4()}"
+                append_log(f"uuid: {messageid_uuid}")
+                messageid = f"<{messageid_uuid}@{messageid_domain}>"
+                append_log(f"messageid: {messageid}")
+                msg['Message-ID'] = messageid
+                msg['Date'] = formatdate(localtime=True)                
+                
+                append_log("check for attachements...") 
+                if attachment_files:
+                    append_log("attachments found") 
+                    attachment_ok_count = attach_files(msg, attachment_files, attachment_ok_count)
+                    append_log(f"{attachment_ok_count} ok attachments") 
+                    
+                append_log("get hostname")     
+                hostname = socket.getfqdn()
+                if not hostname:
+                    hostname = socket.gethostname()  
+                append_log(f"hostname retrieved: {hostname}")   
+                
+                append_log("tryng retrieving if more recipient are set")
+                try:    
+                    to_address = [email.strip() for email in to_address.split(",")] if "," in to_address else to_address.strip()
+                except Exception as e:
+                    process_output(True, f"Error parsing recipient: {e}", 1)        
+                            
+            elif bulk_email:
+                append_log("using bulk email provided")
+                hostname = ""
+                pre_msg = load_html_content(bulk_email)
+                if not pre_msg:
+                    append_log("can't properly retrieve bulk email")
+                validate_base64_content(pre_msg) 
+                try:
+                    decoded_msg = base64.b64decode(pre_msg).decode('utf-8')
+                    append_log("bulk email successfully decoded from Base64")
+                    mime_msg = message_from_string(decoded_msg)
+                    to_address = mime_msg['To']
+                    if to_address:
+                        append_log("recipient retrieved")
+                        msg = mime_msg
+                    else:
+                        process_output(True, "failed retriving recipient", 1)    
+                except Exception as e:
+                    process_output(True, f"Error decoding Base64 content: {e}", 1)                
+                 
+            else:
+                process_output(True, "Something wrong with the data input", 1)  
+
+            append_log("establing connection") 
+            if smtp_security == "TLS":
+                with smtplib.SMTP(smtp_server, smtp_port) as server:
+                    append_log(f"confirmed {smtp_security} path")                                 
+                    append_log("establing TLS connection")    
+                    server.starttls()
+                    if hostname:        
+                        append_log("adding ehlo to the message")          
+                        server.ehlo(hostname)     
+                    else:
+                        append_log("invoking ehlo")
+                        server.ehlo()                  
+                    append_log("starting auth with access token")
+                    auth_string = f"user={smtp_fromemail}\1auth=Bearer {new_access_token}\1\1"
+                    server.docmd("AUTH XOAUTH2 " + base64.b64encode(auth_string.encode()).decode())                                                        
+                    append_log(f"sending {smtp_security} email") 
+                    server.sendmail(smtp_fromemail, to_address, msg.as_string())
+            else:
+                process_output(True, "Something wrong... TLS not set in TN?", 1)   
+        except Exception as e:    
+            process_output(True, f"KO: {e}", 1)
+        
     else:
         process_output(True, "No valid email configuration found.", 1)
                                 
@@ -425,9 +573,10 @@ if __name__ == "__main__":
     parser.add_argument("--subject", help="Email subject. Mandatory when using -mail_body_html")
     parser.add_argument("--to_address", help="Recipient email address. Mandatory when using -mail_body_html")
     parser.add_argument("--mail_body_html", help="File path for the email body, or just a plain text/html. No encoding needed")
-    parser.add_argument("--attachment_files", nargs='*', help="OPTIONAL attachments as json file path array. No ecoding needed")
+    parser.add_argument("--attachment_files", help="OPTIONAL attachments as json file path array. No ecoding needed", nargs='*')
     parser.add_argument("--mail_bulk", help="Bulk email with all necessary parts, encoded and combined together. File path or plain text supported. Content must be served as Base64 without newline /n, the recipient will be get from the To in the message")
-
+    parser.add_argument("--debug_enabled", help="OPTIONAL use to let the script debug all steps into log files. Usefull for troubleshooting", action='store_true')
+    
     args = parser.parse_args()
     
     validate_arguments(args) 
@@ -443,17 +592,22 @@ if __name__ == "__main__":
         append_log(f"{attachment_count} totals attachment") 
         
         email_config = read_config_data()
-        append_log("Switching for the right provider")
-        provider = ""
+        append_log("Switching for the right provider")             
+        provider = ""        
+        tn_provider = tn_provider = email_config.get("oauth", {}).get("provider", "gmail")
+        
         if "smtp" in email_config and email_config["smtp"] and not email_config.get("oauth"):
             provider = "smtp"
-            append_log("** SMTP Version **")    
-        elif "oauth" in email_config and email_config["oauth"]:
-            provider = "gmail"
-            append_log("** Gmail OAuth version **")         
-        elif not email_config["smtp"] and email_config["fromemail"] and not email_config.get("oauth"):     
+            append_log("** SMTP Version **")  
+        elif not email_config["smtp"] and not email_config.get("oauth"):     
             provider = "smtp"
-            append_log("** SMTP Version - without login **")         
+            append_log("** SMTP Version - without login **")               
+        elif "oauth" in email_config and email_config["oauth"] and tn_provider == "gmail":
+            provider = "gmail"
+            append_log("** Gmail OAuth version **")        
+        elif "oauth" in email_config and email_config["oauth"] and tn_provider == "outlook":
+            provider = "outlook"
+            append_log("** Outlook OAuth version **")                     
         else:
             process_output(True, "Can't switch provider", 1)
             

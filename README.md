@@ -4,10 +4,6 @@
 
 ---
 
-### BREAK CHANGE FOR 25.04 RC1 USER:
-### The new Outlook oauth IS NOT YET supported
----
-
 ### What this script do
 Starting from Truenas 24.10.10, the `sendemail` function is no longer available, removed for security reason.  <br>
 This standalone script provides the ability to send emails and attachments using the TrueNAS native `mail.config`, so at least `READONLY_ADMIN`, `SHARING_ADMIN` roles are needed to run correctly the script.<br>
@@ -18,11 +14,15 @@ Actually there are 2 different methods:<br>
     <li>2- passing only the full email base64 encoded (nor a file path and plain text), excatly as using `sendemail` function, as <i>--mail_bulk</i> <li>
 </ul>
 
-Everytime the script run, a log file will be generated and placed into `sendemail_log` folder; those files are automatically deleted with a retention of max 15.  <br>
-Logs file not expose credentials, and if possible (this depend on the dataset structure used), will apply correct permission to the folder 700 - files 600, so to avoid unexpected behaviour please check your ACL before lunch the script.  <br>
-<b>Is highly adviced to use the script in a secured folder</b>, not accessible to un-priviliged users, to avoid unexpected behaviour. <br>
+From version 1.00, the script will not generate log file anymore automatically. Old `sendemail_log` folder and file inside can be safely remove. <br>
 
-### For any problem, improvements, ecc ecc let me know!
+<b>Is highly adviced to use the script in a secured folder</b>, not accessible to un-priviliged users, to avoid unexpected behaviour.
+
+### Debugging
+In case of need, passing `--debug_enabled` as arg to the script will activate the debug mode: a log file will be generated and placed into `sendemail_log` folder; those files are automatically deleted with a retention of max 15, only if `--debug_enabled` is set; folder and file can be safely deleted manually. <br>
+Logs file not expose credentials or access token, and if possible (this depend on the dataset structure used), will apply correct permission to the folder 700 - files 600, so to avoid unexpected behaviour please check your ACL before use this function.  <br>
+
+### For any problem or improvements let me know!
 
 ---
 
@@ -61,3 +61,24 @@ mail_bulk= '/path/to/base64encode/email'
 python3 multireport_sendemail.py \
     --mail_bulk "$mail_bulk"
 
+```
+
+### Method 1 With Debug
+
+```bash
+#!/bin/bash
+
+subject='test' 
+recipient='myemail@gmail.com'
+html_file="<h1>Send Email Test</h1><p>Hello World!</p>"
+
+attachment=() 
+attachment+=("path/to/first/attachment")  # Replace with the actual path
+
+python3 multireport_sendemail.py \
+    --subject "$subject" \
+    --to_address "$recipient" \
+    --mail_body_html "$html_file" \
+    --attachment_files "${attachment[@]}"
+    --debug_enabled
+```
