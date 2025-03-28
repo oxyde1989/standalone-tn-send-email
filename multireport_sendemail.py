@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import smtplib, json, argparse, os, stat, time, base64, subprocess, socket, uuid, requests
+import smtplib, json, argparse, os, stat, time, base64, subprocess, socket, uuid, requests, sys
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -11,7 +11,7 @@ from email import message_from_string
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
-##### V 1.00
+##### V 1.05
 ##### Stand alone script to send email via Truenas
 
 def validate_arguments(args):
@@ -20,14 +20,14 @@ def validate_arguments(args):
     """
     if not args.mail_bulk and not args.mail_body_html:
         print("Error: You must provide at least --mail_bulk or --mail_body_html.")
-        exit(1)
+        sys.exit(1)
     if args.mail_body_html and (not args.subject or not args.to_address):
         print("Error: If --mail_body_html is provided, both --subject and --to_address are required.")
-        exit(1)
+        sys.exit(1)
     if args.debug_enabled:
         if not os.access(os.getcwd(), os.W_OK):
             print(f"Current user doesn't have permission in the execution folder: {os.getcwd()}")
-            exit(1)     
+            sys.exit(1)     
         sfw = is_secure_directory()
         if sfw:
             print(f"{sfw}")
@@ -50,12 +50,11 @@ def is_secure_directory(directory_to_check=None):
             return append_message  
         except Exception as e:
             print(f"Something wrong checking security issue: {e} checking {directory_to_check}")
-            exit(1)          
+            sys.exit(1)          
 
 def create_log_file():
     """
-        We setup a folder called sendemail_log where store log's file on every start. Every Logfiles can be safely deleted, but the script itself will only retain just the newest 15.
-        Starting from 0.13 sendemail_log folder will be forced to 700 and log files to 600. Also symlinks will be ignored
+        We setup a folder called sendemail_log where store log's file on every start if --debug_enabled is set. Every Logfiles can be safely deleted.
     """   
     
     if not args.debug_enabled:    
@@ -66,43 +65,26 @@ def create_log_file():
             
             if os.path.islink(log_dir):
                 print("Something wrong is happening here: the sendemail_log folder is a symlink")
-                exit(1)  
+                sys.exit(1)  
             
             if not os.path.exists(log_dir):
                 os.makedirs(log_dir)
-                try:
-                    os.chmod(log_dir, 0o700)
-                except Exception as e:
-                    print(f"Can't apply permission to log folder {e}")
-                log_file_count = 0
-            else:    
-                current_log_dir_permissions = stat.S_IMODE(os.stat(log_dir).st_mode)
-                if current_log_dir_permissions != 0o700:
-                    try:
-                        os.chmod(log_dir, 0o700)
-                    except Exception as e:
-                        print(f"Can't apply permission to log folder {e}")
-                    
+                log_file_count = 0  
+            else:                 
                 log_files = [f for f in os.listdir(log_dir) if f.endswith('.txt') and os.path.isfile(os.path.join(log_dir, f)) and not os.path.islink(os.path.join(log_dir, f))]
-                log_file_count = len( log_files )
-                if log_file_count >= 15:
-                    oldest_file = min(log_files, key=lambda f: os.path.getctime(os.path.join(log_dir, f)))   
-                    os.remove(os.path.join(log_dir, oldest_file))         
+                log_file_count = len( log_files )  
+            log_file_count = log_file_count + 1   
 
             timestamp = time.strftime("%Y%m%d_%H%M%S", time.localtime())
             log_file_path = os.path.join(log_dir, f"{timestamp}.txt")
 
             if not os.path.exists(log_file_path):
                 with open(log_file_path, 'w') as f:
-                    pass
-                try:
-                    os.chmod(log_file_path, 0o600)
-                except Exception as e:
-                    print(f"Can't apply permission to log file {e}")                
+                    pass              
             return log_file_path, log_file_count
         except Exception as e:
             print(f"Something wrong managing logs: {e}")
-            exit(1)          
+            sys.exit(1)          
 
 def append_log(content):
     """
@@ -124,7 +106,7 @@ def process_output(error, detail="", exit_code=None):
     append_log(f"{detail}") 
     print(response)
     if exit_code is not None:
-        exit(exit_code)
+        sys.exit(exit_code)
 
 def read_config_data():
     """
@@ -142,7 +124,6 @@ def read_config_data():
         
     append_log("read mail.config successfully")                
     midclt_config = json.loads(midclt_output.stdout)
-    print
     return midclt_config
 
 def load_html_content(input_content):
@@ -339,6 +320,10 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                     to_address = mime_msg['To']
                     if to_address:
                         append_log("recipient retrieved")
+                        try:    
+                            to_address = [email.strip() for email in to_address.split(",")] if "," in to_address else to_address.strip()
+                        except Exception as e:
+                            process_output(True, f"Error parsing recipient: {e}", 1)                         
                         msg = mime_msg
                     else:
                         process_output(True, "failed retriving recipient", 1)    
@@ -533,6 +518,10 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                     to_address = mime_msg['To']
                     if to_address:
                         append_log("recipient retrieved")
+                        try:    
+                            to_address = [email.strip() for email in to_address.split(",")] if "," in to_address else to_address.strip()
+                        except Exception as e:
+                            process_output(True, f"Error parsing recipient: {e}", 1)                         
                         msg = mime_msg
                     else:
                         process_output(True, "failed retriving recipient", 1)    
