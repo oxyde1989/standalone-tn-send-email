@@ -11,7 +11,7 @@ from email import message_from_string
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
-##### V 1.05
+##### V 1.06
 ##### Stand alone script to send email via Truenas
 
 def validate_arguments(args):
@@ -373,6 +373,7 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                 process_output(True, "KO: something wrong switching SMTP security level", 1)             
 
             append_log("Email Sent via SMTP")
+            return attachment_ok_count            
 
         except Exception as e:
             process_output(True, f"KO: {e}", 1)
@@ -548,6 +549,8 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                     server.docmd("AUTH XOAUTH2 " + base64.b64encode(auth_string.encode()).decode())                                                        
                     append_log(f"sending {smtp_security} email") 
                     server.sendmail(smtp_fromemail, to_address, msg.as_string())
+                    append_log("Email Sent via Outlook")
+                    return attachment_ok_count  
             else:
                 process_output(True, "Something wrong... TLS not set in TN?", 1)   
         except Exception as e:    
