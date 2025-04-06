@@ -11,7 +11,7 @@ from email import message_from_string
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
-##### V 1.06
+##### V 1.10
 ##### Stand alone script to send email via Truenas
 
 def validate_arguments(args):
@@ -102,7 +102,7 @@ def process_output(error, detail="", exit_code=None):
         Centralized output response 
         - error bool detail string exit_code 0 (ok) 1 (ko) or None (ignore)
     """                   
-    response = json.dumps({"error": error, "detail": detail, "logfile": log_file, "total_attach": attachment_count, "ok_attach": attachment_ok_count}, ensure_ascii=False)
+    response = json.dumps({"error": error, "detail": detail, "logfile": log_file, "total_attach": attachment_count, "ok_attach": attachment_count_valid}, ensure_ascii=False)
     append_log(f"{detail}") 
     print(response)
     if exit_code is not None:
@@ -188,8 +188,9 @@ def getMRconfigvalue(key):
     """
     Function to get eventually multi report value from config, passing the key > the name of the setting
     """    
-    config_file = "multi_report_config.txt" 
-    
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    config_file = os.path.join(script_dir, "multi_report_config.txt")
+
     if not os.path.exists(config_file):
         append_log(f"{config_file} not found")
         return ""
@@ -206,7 +207,7 @@ def getMRconfigvalue(key):
                     value = key_value_pair.split("=")[1].strip().strip('"')
                     return value
     except Exception as e:
-        append_log(f"{config_file} not found. {e}")
+        append_log(f"Error reading {config_file}: {e}")
         return ""
 
     return ""
@@ -232,13 +233,40 @@ def get_outlook_access_token():
             process_output(True, f"response for the access token has an error: {response.text}", 1)   
     except Exception as e:
         process_output(True, f"A problem occurred retrieving access token: {e}", 1)
-
+        
+def get_fromname_fromemail(options):
+    """ centralized function to retrieve from name - from email """
+    try:
+        for fromname, fromemail, log_message in options:
+            if fromemail:
+                append_log(log_message)
+                return f"{fromname} <{fromemail}>" if fromname else fromemail, fromemail
+        return None, None
+    except Exception as e:
+        process_output(True, f"A problem occurred retrieving data: {e}", 1)
             
 def send_email(subject, to_address, mail_body_html, attachment_files, email_config, provider, bulk_email):
     """
     Function to send an email via SMTP or Gmail OAuth based on the provider available
     """
-    attachment_ok_count = 0  
+    attachment_ok_count = 0 
+    tn_fromemail = email_config["fromemail"]
+    tn_fromname = email_config["fromname"]    
+    fallback_fromname = getMRconfigvalue("FromName")
+    fallback_fromemail = getMRconfigvalue("From")     
+    override_fromname = args.override_fromname
+    override_fromemail = args.override_fromemail    
+    from_options = [
+        (override_fromname, override_fromemail, "using override fromname-email"),
+        (fallback_fromname, fallback_fromemail, "using mr-config fromname-email"),
+        (tn_fromname, tn_fromemail, "using default fromname-email"),
+        (override_fromname, tn_fromemail, "using override fromname with tn email"),
+        (fallback_fromname, tn_fromemail, "using fallback fromname with tn email"),
+        (None, override_fromemail, "using override fromemail"),
+        (None, fallback_fromemail, "using mr-config fromemail"),
+        (None, tn_fromemail, "using default fromemail")
+    ]       
+    
     if provider == "smtp":
         try:
             append_log("parsing smtp config") 
@@ -247,10 +275,8 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
             smtp_port = email_config["port"]
             smtp_user = email_config["user"]
             smtp_password = email_config["pass"]
-            smtp_fromemail = email_config["fromemail"]
-            smtp_fromname = email_config["fromname"]
             smtp_login = email_config["smtp"]
-            
+ 
             append_log("switch from classic send and bulk email")    
             if mail_body_html:
                 append_log("mail hmtl provided")
@@ -259,13 +285,9 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
 
                 append_log("start parsing headers")
                 msg = MIMEMultipart()
-                append_log("parsing data from config") 
-                if smtp_fromname:
-                    msg['From'] = f"{smtp_fromname} <{smtp_fromemail}>"
-                    append_log(f"using fromname {smtp_fromname}")
-                else: 
-                    msg['From'] = smtp_fromemail
-                    append_log(f"using fromemail {smtp_fromemail}")
+                
+                append_log("parsing data from config and override options")                                 
+                msg['From'], smtp_senderemail = get_fromname_fromemail(from_options)                                              
                 msg['To'] = to_address
                 msg['Subject'] = subject
                 msg.attach(MIMEText(html_content, 'html'))
@@ -274,9 +296,9 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                 try:
                     messageid_domain = smtp_user.split("@")[1]
                 except Exception:
-                    append_log(f"{smtp_user} not a valid address, tryng on {smtp_fromemail}")
+                    append_log(f"{smtp_user} not a valid address, tryng on {smtp_senderemail}")
                     try:
-                        messageid_domain = smtp_fromemail.split("@")[1]
+                        messageid_domain = smtp_senderemail.split("@")[1]
                     except Exception:
                         append_log(f"{smtp_fromemail} not a valid address, need to use a fallback ")
                         messageid_domain = "local.me"
@@ -295,9 +317,12 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                     append_log(f"{attachment_ok_count} ok attachments") 
                     
                 append_log("get hostname")     
-                hostname = socket.getfqdn()
-                if not hostname:
-                    hostname = socket.gethostname()  
+                try:
+                    hostname = socket.getfqdn()
+                    if not hostname:
+                        hostname = socket.gethostname()  
+                except Exception:
+                    process_output(True, "A problem occurred retrieving hostname", 1)     
                 append_log(f"hostname retrieved: {hostname}")   
                 
                 append_log("tryng retrieving if more recipient are set")
@@ -346,7 +371,7 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                         append_log("entering credentials") 
                         server.login(smtp_user, smtp_password)
                     append_log(f"sending {smtp_security} email") 
-                    server.sendmail(smtp_fromemail, to_address, msg.as_string())
+                    server.sendmail(smtp_senderemail, to_address, msg.as_string())
             elif smtp_security == "SSL":
                 with smtplib.SMTP_SSL(smtp_server, smtp_port) as server:
                     append_log(f"entered {smtp_security} path")   
@@ -357,7 +382,7 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                         append_log("entering credentials") 
                         server.login(smtp_user, smtp_password)
                     append_log(f"sending {smtp_security} email") 
-                    server.sendmail(smtp_fromemail, to_address, msg.as_string())
+                    server.sendmail(smtp_senderemail, to_address, msg.as_string())
             elif smtp_security == "PLAIN":
                 with smtplib.SMTP(smtp_server, smtp_port) as server:
                     append_log(f"entered {smtp_security} path")   
@@ -368,7 +393,7 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                         append_log("entering credentials")
                         server.login(smtp_user, smtp_password)   
                     append_log(f"sending {smtp_security} email") 
-                    server.sendmail(smtp_fromemail, to_address, msg.as_string())        
+                    server.sendmail(smtp_senderemail, to_address, msg.as_string())        
             else:
                 process_output(True, "KO: something wrong switching SMTP security level", 1)             
 
@@ -389,27 +414,9 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                 append_log("mail hmtl provided")
                 append_log("start parsing headers")          
                 msg = MIMEMultipart()
-                append_log("parsing data from config") 
-                gmail_fromemail = email_config["fromemail"]
-                gmail_fromname = email_config["fromname"]                
-                fallback_fromname = getMRconfigvalue("FromName")
-                fallback_fromemail = getMRconfigvalue("From")
                 
-                if fallback_fromname and fallback_fromemail:
-                    msg['From'] = f"{fallback_fromname} <{fallback_fromemail}>"
-                    append_log("using mr-config fromname-email") 
-                elif gmail_fromemail and gmail_fromname:
-                    msg['From'] = f"{gmail_fromname} <{gmail_fromemail}>"
-                    append_log("using tn fromname-email") 
-                elif fallback_fromemail: 
-                    msg['From'] = fallback_fromemail
-                    append_log("using mr-config fromemail") 
-                elif gmail_fromemail:   
-                    msg['From'] = gmail_fromemail
-                    append_log("using tn fromemail")                        
-                else:
-                    append_log("can't find a from setting. Gmail will apply the default")  
-                    
+                append_log("parsing data from config and override options")                                 
+                msg['From'], smtp_senderemail = get_fromname_fromemail(from_options)                                         
                 msg['to'] = to_address
                 msg['subject'] = subject
                         
@@ -450,8 +457,6 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
             smtp_security = email_config["security"]
             smtp_server = email_config["outgoingserver"]
             smtp_port = email_config["port"]
-            smtp_fromemail = email_config["fromemail"]
-            smtp_fromname = email_config["fromname"]      
                   
             append_log("switch from classic send and bulk email")   
             if mail_body_html:
@@ -461,22 +466,17 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
 
                 append_log("start parsing headers")
                 msg = MIMEMultipart()
-                append_log("parsing data from config") 
-                if smtp_fromname:
-                    msg['From'] = f"{smtp_fromname} <{smtp_fromemail}>"
-                    append_log(f"using fromname {smtp_fromname}")
-                else: 
-                    msg['From'] = smtp_fromemail
-                    append_log(f"using fromemail {smtp_fromemail}")
+                append_log("parsing data from config and override options")                                 
+                msg['From'], smtp_senderemail = get_fromname_fromemail(from_options) 
                 msg['To'] = to_address
                 msg['Subject'] = subject
                 msg.attach(MIMEText(html_content, 'html'))
                 
-                append_log(f"generate a message ID using {smtp_fromemail}")
+                append_log(f"generate a message ID using {smtp_senderemail}")
                 try:
-                    messageid_domain = smtp_fromemail.split("@")[1]
+                    messageid_domain = smtp_senderemail.split("@")[1]
                 except Exception:
-                    append_log(f"{smtp_fromemail} not a valid address, need to use a fallback ")
+                    append_log(f"{smtp_senderemail} not a valid address, need to use a fallback ")
                     messageid_domain = "local.me"
                     
                 append_log(f"domain: {messageid_domain}")
@@ -494,9 +494,12 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                     append_log(f"{attachment_ok_count} ok attachments") 
                     
                 append_log("get hostname")     
-                hostname = socket.getfqdn()
-                if not hostname:
-                    hostname = socket.gethostname()  
+                try:
+                    hostname = socket.getfqdn()
+                    if not hostname:
+                        hostname = socket.gethostname()  
+                except Exception:
+                    process_output(True, "A problem occurred retrieving hostname", 1)     
                 append_log(f"hostname retrieved: {hostname}")   
                 
                 append_log("tryng retrieving if more recipient are set")
@@ -545,10 +548,11 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                         append_log("invoking ehlo")
                         server.ehlo()                  
                     append_log("starting auth with access token")
-                    auth_string = f"user={smtp_fromemail}\1auth=Bearer {new_access_token}\1\1"
+                    auth_string = f"user={tn_fromemail}\1auth=Bearer {new_access_token}\1\1"
                     server.docmd("AUTH XOAUTH2 " + base64.b64encode(auth_string.encode()).decode())                                                        
                     append_log(f"sending {smtp_security} email") 
-                    server.sendmail(smtp_fromemail, to_address, msg.as_string())
+                    server.sendmail(smtp_senderemail, to_address, msg.as_string())
+                    
                     append_log("Email Sent via Outlook")
                     return attachment_ok_count  
             else:
@@ -568,20 +572,21 @@ if __name__ == "__main__":
     parser.add_argument("--attachment_files", help="OPTIONAL attachments as json file path array. No ecoding needed", nargs='*')
     parser.add_argument("--mail_bulk", help="Bulk email with all necessary parts, encoded and combined together. File path or plain text supported. Content must be served as Base64 without newline /n, the recipient will be get from the To in the message")
     parser.add_argument("--debug_enabled", help="OPTIONAL use to let the script debug all steps into log files. Usefull for troubleshooting", action='store_true')
+    parser.add_argument("--override_fromname", help="OPTIONAL override sender name from TN config")
+    parser.add_argument("--override_fromemail", help="OPTIONAL override sender email from TN config")    
     
     args = parser.parse_args()
     
     validate_arguments(args) 
 
-    try:
-        attachment_count = calc_attachment_count(args.attachment_files)      
-        attachment_ok_count = 0
-        
+    try:        
         log_file, log_file_count = create_log_file()
         append_log(f"File {log_file} successfully generated")
         append_log(f"{log_file_count} totals file log")
         
-        append_log(f"{attachment_count} totals attachment") 
+        attachment_count = calc_attachment_count(args.attachment_files)  
+        attachment_count_valid = 0      
+        append_log(f"{attachment_count} totals attachment to handle") 
         
         email_config = read_config_data()
         append_log("Switching for the right provider")             
@@ -603,15 +608,15 @@ if __name__ == "__main__":
         else:
             process_output(True, "Can't switch provider", 1)
             
-        attachment_ok_count = send_email(args.subject, args.to_address, args.mail_body_html, args.attachment_files, email_config, provider, args.mail_bulk)
+        attachment_count_valid = send_email(args.subject, args.to_address, args.mail_body_html, args.attachment_files, email_config, provider, args.mail_bulk)
         
-        if attachment_ok_count is None:
-            attachment_ok_count = 0
+        if attachment_count_valid is None:
+            attachment_count_valid = 0
         
         final_output_message = "<< Email Sent >>"
         
-        if attachment_ok_count < attachment_count:
-            final_output_message = final_output_message + "\n>> Soft warning: something wrong with 1 or more attachments, check logs for more info >>"
+        if attachment_count_valid < attachment_count:
+            final_output_message = final_output_message + "\n>> Soft warning: something wrong with 1 or more attachments >>"
 
         final_output_message = final_output_message + is_secure_directory()
             
