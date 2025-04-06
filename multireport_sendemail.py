@@ -300,7 +300,7 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                     try:
                         messageid_domain = smtp_senderemail.split("@")[1]
                     except Exception:
-                        append_log(f"{smtp_fromemail} not a valid address, need to use a fallback ")
+                        append_log(f"{smtp_senderemail} not a valid address, need to use a fallback ")
                         messageid_domain = "local.me"
                 append_log(f"domain: {messageid_domain}")
                 messageid_uuid = f"{datetime.now().strftime('%Y_%m_%d_%H_%M_%S_%f')[:-3]}{uuid.uuid4()}"
