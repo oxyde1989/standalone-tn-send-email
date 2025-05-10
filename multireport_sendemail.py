@@ -6,12 +6,12 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
-from email.utils import formatdate
+from email.utils import formatdate, parseaddr
 from email import message_from_string
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
-##### V 1.10
+##### V 1.11
 ##### Stand alone script to send email via Truenas
 
 def validate_arguments(args):
@@ -343,6 +343,12 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                     append_log("bulk email successfully decoded from Base64")
                     mime_msg = message_from_string(decoded_msg)
                     to_address = mime_msg['To']
+                    from_address = mime_msg['From']
+                    try:
+                        _, smtp_senderemail = parseaddr(from_address)
+                        append_log("sender retrieved")
+                    except Exception as e:
+                        process_output(True, f"Error parsing sender: {e}", 1)  
                     if to_address:
                         append_log("recipient retrieved")
                         try:    
@@ -520,6 +526,12 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                     append_log("bulk email successfully decoded from Base64")
                     mime_msg = message_from_string(decoded_msg)
                     to_address = mime_msg['To']
+                    from_address = mime_msg['From']
+                    try:
+                        _, smtp_senderemail = parseaddr(from_address)
+                        append_log("sender retrieved")
+                    except Exception as e:
+                        process_output(True, f"Error parsing sender: {e}", 1)                      
                     if to_address:
                         append_log("recipient retrieved")
                         try:    

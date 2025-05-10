@@ -1,6 +1,6 @@
 # Stand-alone TrueNAS Send Email Script
 
-<i>using the buil-in `mail.config` data</i>
+<i>using the built-in `mail.config` data</i>
 
 ---
 
@@ -11,7 +11,7 @@ Designed to be a wrapper for <a href="https://github.com/JoeSchmuck/Multi-Report
 Actually, there are 2 different usage methods:<br>
 <ul>
     <li>1- passing `--subject`,  `--to_address`, `--mail_body_html` (nor a file path and plain text), plus other optionally args **</li>
-    <li>2- passing only the full email base64 encoded (nor a file path and plain text) as `--mail_bulk`, trying to emulating the old `sendemail` function <li>
+    <li>2- passing only the full email base64 encoded (nor a file path and plain text) as `--mail_bulk`, trying to emulating the old `sendemail` function, and all the info will be retrieved there <li>
 </ul>
 
 ** Optionals args are:
