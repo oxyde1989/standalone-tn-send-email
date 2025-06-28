@@ -35,10 +35,11 @@ Is possible to override the TN sender name - sender email in those ways:
 `override data > fallback data > default`  
 
 Also, only `override_fromname` and `FromName` can be passed, and they will be applied to the default email.
-
-> **Version 1.10 possible breakchange for multi report users:**  
-> Before update, *check if your multi report configuration file contains a valid `From` value.*  
-> Gmail users shouldn't be impacted by that, but for SMTP and Outlook users, **a not valid alias-address used there can be reason of fail.**
+ 
+> **Customize the sender name has no particoular restrictions**, is pretty safe, **instead you have to pay attention on customizing the sender** (reject ratio depending on your provider):
+> - **GMAIL**:  this provider will override your sender with the account email if it is not a validated alias, and the deliver shouldn't fail; you can safely send email with a sender plus address (example, your account is `myemail@gmail.com` and you use `myemail+multireport@gmail.com` as sender)
+> - **OUTLOOK**: every sender that is not a valid alias of the account will be rejected
+> - **SMTP**: every provider has own policy, but the most reject sender that is not a validated account/alias; also to mention, despite the email is send, using a sender with a different domain can be checked as spoofing with the direct conseguence that the email is delivered but go into the SPAM folder
 
 ---
 
