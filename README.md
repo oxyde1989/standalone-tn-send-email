@@ -29,7 +29,7 @@ Actually, there are 2 different usage methods:
 Is possible to override the TN sender name - sender email in those ways:
 
 - passing `--override_fromemail` or `--override_fromname`  calling the script
-- multi report users can edit theyr standard `mr_config` file, value involved are `FromName` and `FromEmail`, as a fallback  
+- multi report users can edit theyr standard `mr_config` file, value involved are `FromName` and `From`, as a fallback  
 
 📌 The priority is:  
 `override data > fallback data > default`  
@@ -37,7 +37,7 @@ Is possible to override the TN sender name - sender email in those ways:
 Also, only `override_fromname` and `FromName` can be passed, and they will be applied to the default email.
 
 > **Version 1.10 possible breakchange for multi report users:**  
-> Before update, *check if your multi report configuration file contains a valid `FromEmail` value.*  
+> Before update, *check if your multi report configuration file contains a valid `From` value.*  
 > Gmail users shouldn't be impacted by that, but for SMTP and Outlook users, **a not valid alias-address used there can be reason of fail.**
 
 ---
