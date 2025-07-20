@@ -11,7 +11,7 @@ from email import message_from_string
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
-##### V 1.15
+##### V 1.20
 ##### Stand alone script to send email via Truenas
 
 def validate_arguments(args):
@@ -24,6 +24,11 @@ def validate_arguments(args):
     if args.mail_body_html and (not args.subject or not args.to_address):
         print("Error: If --mail_body_html is provided, both --subject and --to_address are required.")
         sys.exit(1)
+    for param_name in ["subject", "to_address", "override_fromname", "override_fromemail"]:
+        param_value = getattr(args, param_name, None)
+        if param_value and ("\r" in param_value or "\n" in param_value):
+            print(f"Error: arg '{param_name}' contains CRLF char, not allowed")
+            sys.exit(1)        
     if args.debug_enabled:
         if not os.access(os.getcwd(), os.W_OK):
             print(f"Current user doesn't have permission in the execution folder: {os.getcwd()}")
@@ -110,11 +115,18 @@ def process_output(error, detail="", exit_code=None):
 
 def read_config_data():
     """
-     function for read the mail.config from midclt 
+     function for read the mail.config from midclt. Now supporting Core and Scale 
     """    
-    append_log("trying read mail.config") 
+    append_log("trying read mail.config")
+    midclt_path = "/usr/bin/midclt"
+    if not os.path.exists(midclt_path):
+        append_log(f"{midclt_path} not found, switching to Core midclt path") 
+        midclt_path = "/usr/local/bin/midclt"
+        if not os.path.exists(midclt_path):
+          process_output(True, "Failed to load midclt", 1)     
+     
     midclt_output = subprocess.run(
-        ["/usr/bin/midclt", "call", "mail.config"],
+        [midclt_path, "call", "mail.config"],
         capture_output=True,
         text=True,
         check=True
@@ -161,12 +173,54 @@ def calc_attachment_count(attachment_input):
     total_attachments = len(attachment_input) if attachment_input else 0
     return total_attachments    
 
+DENYLIST_PREFIXES = [
+    "/etc/ssh/",
+    "/root/.ssh/",
+]
+
+DENYLIST_FILES = [
+    "/etc/passwd",
+    "/etc/shadow",
+    "/etc/hosts",
+    "/root/.bash_history",
+    "/var/log/auth.log",
+    "/var/log/messages",
+    "/var/log/secure",
+    "/etc/sudoers",
+    "/etc/fstab",
+]
+
+def attachment_denied(path):
+    try:
+        real_path = os.path.realpath(path)
+        if real_path in DENYLIST_FILES:
+            return True        
+        for prefix in DENYLIST_PREFIXES:
+            if real_path.startswith(prefix):
+                return True
+    except Exception:
+        pass
+    return False
+
 def attach_files(msg, attachment_files, attachment_ok_count):
     """
-    Function to attach files!
+    Function to attach files: max size:50mb, no symlink allowed
     """
+    attachment_max_size = 50 * 1024 * 1024
     for attachment_file in attachment_files:
         try:
+            st = os.lstat(attachment_file)
+            if stat.S_ISLNK(st.st_mode):
+                append_log(f"skipping {attachment_file}: symlink detected")
+                continue  
+            append_log(f"symlink verification for {attachment_file} pass")
+            if st.st_size > attachment_max_size:
+                append_log(f"skipping {attachment_file}: exceeds max attachment size")
+                continue 
+            if attachment_denied(attachment_file):
+                append_log(f"skipping {attachment_file}: file in denylist")
+                continue             
+            append_log(f"size verification for {attachment_file} pass")                    
             with open(attachment_file, 'rb') as f:
                 file_data = f.read()              
                 part = MIMEBase('application', 'octet-stream')
@@ -178,10 +232,10 @@ def attach_files(msg, attachment_files, attachment_ok_count):
                 )
                 msg.attach(part)
                 attachment_ok_count +=1
-                append_log(f"OK {attachment_file}")
+                append_log(f"attachment OK {attachment_file}")
         
         except Exception as e:
-            append_log(f"KO {attachment_file}: {e}")      
+            append_log(f"attachment KO {attachment_file}: {e}")      
     return attachment_ok_count  
 
 def getMRconfigvalue(key):
@@ -205,6 +259,9 @@ def getMRconfigvalue(key):
                 if key_value_pair.startswith(key + "="):
                     append_log(f"{key} found")
                     value = key_value_pair.split("=")[1].strip().strip('"')
+                    if "\r" in value or "\n" in value:
+                        append_log(f"{key} rejected, contains CRLF")
+                        return ""                    
                     return value
     except Exception as e:
         append_log(f"Error reading {config_file}: {e}")
@@ -225,7 +282,7 @@ def get_outlook_access_token():
         "scope": "https://outlook.office.com/SMTP.Send openid offline_access"
     }   
     try:
-        response = requests.post(oauth_url, data=data)   
+        response = requests.post(oauth_url, data=data, timeout=15)   
         if response.status_code == 200:
             append_log("got access token!") 
             return response.json()["access_token"]
@@ -368,7 +425,7 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
             try:
                 server_sendemail_done = False
                 if smtp_security == "TLS":
-                    with smtplib.SMTP(smtp_server, smtp_port) as server:
+                    with smtplib.SMTP(smtp_server, smtp_port, timeout=30) as server:
                         append_log(f"entered {smtp_security} path")                        
                         if hostname:        
                             append_log("adding ehlo to the message")          
@@ -382,7 +439,7 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                         server.sendmail(smtp_senderemail, to_address, msg.as_string())
                         server_sendemail_done = True
                 elif smtp_security == "SSL":
-                    with smtplib.SMTP_SSL(smtp_server, smtp_port) as server:
+                    with smtplib.SMTP_SSL(smtp_server, smtp_port, timeout=30) as server:
                         append_log(f"entered {smtp_security} path")   
                         if hostname:        
                             append_log("adding ehlo to the message")          
@@ -394,7 +451,7 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                         server.sendmail(smtp_senderemail, to_address, msg.as_string())
                         server_sendemail_done = True
                 elif smtp_security == "PLAIN":
-                    with smtplib.SMTP(smtp_server, smtp_port) as server:
+                    with smtplib.SMTP(smtp_server, smtp_port, timeout=30) as server:
                         append_log(f"entered {smtp_security} path")   
                         if hostname:        
                             append_log("adding ehlo to the message")          
@@ -562,7 +619,7 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
 
             append_log("establing connection") 
             if smtp_security == "TLS":
-                with smtplib.SMTP(smtp_server, smtp_port) as server:
+                with smtplib.SMTP(smtp_server, smtp_port, timeout=30) as server:
                     append_log(f"confirmed {smtp_security} path")                                 
                     append_log("establing TLS connection")    
                     server.starttls()

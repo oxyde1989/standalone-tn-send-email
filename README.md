@@ -6,8 +6,9 @@
 ## 📌 What this script do
 
 Starting from Truenas 24.10.10, the `sendemail` function is no longer available, removed for security reason.  
-This standalone script provides the ability to send emails and attachments using the TrueNAS native `mail.config`.  
-Designed to be a wrapper for [Joe's Multi Report](https://github.com/JoeSchmuck/Multi-Report), it also can be used for simplify sending email overall in many other scenarios.  
+This standalone script provides the ability to send emails and attachments using the TrueNAS native `mail.config`, in the simplest possible way.  
+Originally designed to be a wrapper for [Joe's Multi Report](https://github.com/JoeSchmuck/Multi-Report), it also can be used for simplify sending email overall in many other scenarios.  
+  
 Actually, there are 2 different usage methods:
 
 1. Passing `--subject`, `--to_address`, `--mail_body_html` (nor a file path and plain text), plus other optionally args.
@@ -26,10 +27,10 @@ Actually, there are 2 different usage methods:
 
 ## ✉️ Sender data override
 
-Is possible to override the TN sender name - sender email in those ways:
+Is possible to override the TN sender name - sender email to fit more scenarios in those ways:
 
-- passing `--override_fromemail` or `--override_fromname`  calling the script
-- multi report users can edit theyr standard `mr_config` file, value involved are `FromName` and `From`, as a fallback  
+- using directly `--override_fromemail` or `--override_fromname` args calling the script
+- (for multi report users) editing own standard `mr_config` file, value involved are `FromName` and `From`, as a fallback  
 
 📌 The priority is:  
 `override data > fallback data > default`  
@@ -45,22 +46,20 @@ Also, only `override_fromname` and `FromName` can be passed, and they will be ap
 
 ## 🐞 Debugging
 
-- **From version 1.00**, the script will **not generate log file** anymore automatically  
-- **From version 1.05**, the **file cleanup has been totally removed**
-
 In case of need, passing `--debug_enabled` as arg to the script will activate the debug mode: a log file will be generated and placed into `sendemail_log` folder. 
 Folder itself and files can be safely deleted manually anytime.  
 Calling the script from crontab, with the debug enabled, can lead to problem if the `root` user is the one used and, before invoke the script, the correct working directory is not selected with a `cd` command.
 
-> **Logs file not expose credentials or access token**, but consider anyway to cleanup everything after a debug session.
+> **Logs file not obviously expose credentials or access token**, but dont forget to cleanup after a debug session anyway to not expose more-or-less sensitive data in your usage context.
 
 ---
 
 ## 🔐 Security Concern
 
-To retrieve TN mail config data, at least `READONLY_ADMIN` or `SHARING_ADMIN` roles are needed for the user that run the script.  
-**Is highly adviced to use the script in a secured folder**, not accessible to un-priviliged users, to avoid unexpected behaviour.  
-The script will advice you in those scenarios, **but check your dataset permission before use the script.**
+To retrieve TN mail configuration data, at least `READONLY_ADMIN` or `SHARING_ADMIN` roles are needed for the user that run the script.  
+**So is highly adviced to only use the script in a secured folder**, not accessible to un-priviliged users, to avoid unexpected behaviour.  
+The script will advice you in those scenarios, **so pay attention if some warning are raised on first usage** and fix your dataset permission accordingly.
+There are other check that are performed to improve security (attachment black list, avoiding symlink, CLRF injection, ...), any suggestion is welcome and i will do my best to keep things safest and flexible for all.
 
 
 ---
