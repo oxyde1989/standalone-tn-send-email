@@ -59,7 +59,7 @@ Calling the script from crontab, with the debug enabled, can lead to problem if 
 To retrieve TN mail configuration data, at least `READONLY_ADMIN` or `SHARING_ADMIN` roles are needed for the user that run the script.  
 **So is highly adviced to only use the script in a secured folder**, not accessible to un-priviliged users, to avoid unexpected behaviour.  
 The script will advice you in those scenarios, **so pay attention if some warning are raised on first usage** and fix your dataset permission accordingly.
-There are other check that are performed to improve security (attachment black list, avoiding symlink, CLRF injection, ...), any suggestion is welcome and i will do my best to keep things safest and flexible for all.
+There are other check that are performed to improve security (attachment black list, avoiding symlink, CRLF injection, ...), any suggestion is welcome and i will do my best to keep things safest and flexible for all.
 
 
 ---
