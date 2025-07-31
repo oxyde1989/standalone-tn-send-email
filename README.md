@@ -19,6 +19,7 @@ Actually, there are 2 different usage methods:
 ### ⚙️ Optional args:
 
 - `--debug_enabled` to activate the debug mode (available in `--mail_bulk` too )
+- `--test_mode` to trigger a quick test email send (`--to_address` need to be specified, nothing else)
 - An array of absolute file path for attachments as `--attachment_files`  
 - A specific sender name as `--override_fromname`  
 - A specific sender address as `--override_fromemail`
@@ -52,6 +53,9 @@ Calling the script from crontab, with the debug enabled, can lead to problem if 
 
 > **Logs file not obviously expose credentials or access token**, but dont forget to cleanup after a debug session anyway to not expose more-or-less sensitive data in your usage context.
 
+If you wanna just test the basic function fast and quickly, use the `--test_mode` and the script will compose and send a test email to the recipient specified with `--to_address` arg. In test mode, also the debug will be enabled
+> **The log file attached will not contain all the info generated after the file itself will be attached**, but this not affect the original file in the `sendemail_log` folder. 
+
 ---
 
 ## 🔐 Security Concern
@@ -69,6 +73,16 @@ There are other check that are performed to improve security (attachment black l
 ---
 
 ## 📘 Basic Example
+
+### ✅ TestMode: quick testing (from 1.25)
+
+```bash
+#!/bin/bash
+
+python3 multireport_sendemail.py \
+    --to_address "myemail@gmail.com" \
+    --test_mode
+```
 
 ### ✅ Method 1
 
