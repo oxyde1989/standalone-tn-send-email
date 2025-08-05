@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
-import smtplib, json, argparse, os, stat, time, base64, subprocess, socket, uuid, requests, sys
+import smtplib, json, argparse, os, stat, time, base64, subprocess, socket, uuid, requests, sys, re
+import urllib.request
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -11,8 +12,9 @@ from email import message_from_string
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
-##### V 1.20
+##### V 1.25
 ##### Stand alone script to send email via Truenas
+__version__ = "1.25"
 
 def validate_arguments(args):
     """
@@ -36,6 +38,20 @@ def validate_arguments(args):
         sfw = is_secure_directory()
         if sfw:
             print(f"{sfw}")
+            
+def check_for_update(local_version):
+    github_raw_url = "https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/main/multireport_sendemail.py"
+    try:
+        with urllib.request.urlopen(github_raw_url, timeout=5) as response:
+            content = response.read().decode("utf-8")
+            match = re.search(r'__version__\s*=\s*[\'"](\d+\.\d+)[\'"]', content)
+            if match:
+                remote_version = match.group(1)
+                if remote_version > local_version:
+                    return True
+    except Exception as e:
+        pass
+    return False                       
         
 def is_secure_directory(directory_to_check=None):
     """
@@ -138,6 +154,32 @@ def read_config_data():
     midclt_config = json.loads(midclt_output.stdout)
     return midclt_config
 
+def read_user_email():
+    """
+     function for read the context user email - to automatic retrieve recipient for email test
+    """    
+    midclt_path = "/usr/bin/midclt"
+    if not os.path.exists(midclt_path):
+        midclt_path = "/usr/local/bin/midclt"
+        if not os.path.exists(midclt_path):
+            return None
+    try:
+        uid = os.geteuid()
+        cmd_user = [
+            midclt_path,
+            "call",
+            "user.query",
+            f'[["uid","=",{uid}]]',
+            '{"get": true}'
+        ]
+        user_json = subprocess.check_output(cmd_user, text=True)
+        user_data = json.loads(user_json)
+        if user_data and user_data.get("email"):
+            return user_data["email"]
+    except Exception:
+        return None
+    return None
+
 def load_html_content(input_content):
     """
      use this fuction to switch from achieve nor a file to read and a plain text/html
@@ -217,10 +259,11 @@ def attach_files(msg, attachment_files, attachment_ok_count):
             if st.st_size > attachment_max_size:
                 append_log(f"skipping {attachment_file}: exceeds max attachment size")
                 continue 
+            append_log(f"size verification for {attachment_file} pass") 
             if attachment_denied(attachment_file):
                 append_log(f"skipping {attachment_file}: file in denylist")
                 continue             
-            append_log(f"size verification for {attachment_file} pass")                    
+            append_log(f"blacklist verification for {attachment_file} pass")                    
             with open(attachment_file, 'rb') as f:
                 file_data = f.read()              
                 part = MIMEBase('application', 'octet-stream')
@@ -654,14 +697,40 @@ if __name__ == "__main__":
     parser.add_argument("--mail_bulk", help="Bulk email with all necessary parts, encoded and combined together. File path or plain text supported. Content must be served as Base64 without newline /n, the recipient will be get from the To in the message")
     parser.add_argument("--debug_enabled", help="OPTIONAL use to let the script debug all steps into log files. Usefull for troubleshooting", action='store_true')
     parser.add_argument("--override_fromname", help="OPTIONAL override sender name from TN config")
-    parser.add_argument("--override_fromemail", help="OPTIONAL override sender email from TN config")    
+    parser.add_argument("--override_fromemail", help="OPTIONAL override sender email from TN config")
+    parser.add_argument("--test_mode", help="OPTIONAL use to let the script override all info and quickly send a sample email", action='store_true')        
     
     args = parser.parse_args()
+    
+    if args.test_mode:
+        print("Activating test mode") 
+        args.subject = "TN SendEmail Test mode"        
+        args.mail_body_html = """
+            <div style="font-family: Arial, sans-serif; color: #222; padding: 20px;">
+                <h1 style="color: #3366cc;">Testing Sendemail!</h1>
+                <p>
+                    I'm glad that you received that email.<br>
+                    Also <b>first part</b> of LogFile has been attached!
+                </p>
+                <p style="font-size: 14px; color: #888;">
+                    Provided with &lt;3 by Oxyde
+                </p>
+            </div>
+        """
+        args.attachment_files = None
+        args.mail_bulk = None
+        args.debug_enabled = True
+        args.override_fromname = "Oxyde"
+        args.override_fromemail = None
+        args.to_address = read_user_email()
     
     validate_arguments(args) 
 
     try:        
         log_file, log_file_count = create_log_file()
+        if args.test_mode:
+            append_log("### TEST MODE ON ###")
+            args.attachment_files = [log_file]
         append_log(f"File {log_file} successfully generated")
         append_log(f"{log_file_count} totals file log")
         
@@ -695,6 +764,11 @@ if __name__ == "__main__":
             attachment_count_valid = 0
         
         final_output_message = "<< Email Sent >> "
+        
+        append_log("Check for update")
+        if check_for_update(__version__):
+            final_output_message = final_output_message + "\n>> NEW VERSION AVAILABLE >>"    
+            print(">> NEW VERSION AVAILABLE ON GITHUB. Consider to upgrade! >>");    
         
         if attachment_count_valid < attachment_count:
             final_output_message = final_output_message + "\n>> Soft warning: something wrong with 1 or more attachments >>"
