@@ -154,6 +154,32 @@ def read_config_data():
     midclt_config = json.loads(midclt_output.stdout)
     return midclt_config
 
+def read_user_email():
+    """
+     function for read the context user email - to automatic retrieve recipient for email test
+    """    
+    midclt_path = "/usr/bin/midclt"
+    if not os.path.exists(midclt_path):
+        midclt_path = "/usr/local/bin/midclt"
+        if not os.path.exists(midclt_path):
+            return None
+    try:
+        uid = os.geteuid()
+        cmd_user = [
+            midclt_path,
+            "call",
+            "user.query",
+            f'[["uid","=",{uid}]]',
+            '{"get": true}'
+        ]
+        user_json = subprocess.check_output(cmd_user, text=True)
+        user_data = json.loads(user_json)
+        if user_data and user_data.get("email"):
+            return user_data["email"]
+    except Exception:
+        return None
+    return None
+
 def load_html_content(input_content):
     """
      use this fuction to switch from achieve nor a file to read and a plain text/html
@@ -696,6 +722,7 @@ if __name__ == "__main__":
         args.debug_enabled = True
         args.override_fromname = "Oxyde"
         args.override_fromemail = None
+        args.to_address = read_user_email()
     
     validate_arguments(args) 
 
