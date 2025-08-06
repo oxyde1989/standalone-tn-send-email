@@ -19,7 +19,7 @@ Actually, there are 2 different usage methods:
 ### ⚙️ Optional args:
 
 - `--debug_enabled` to activate the debug mode (available in `--mail_bulk` too )
-- `--test_mode` to trigger a quick test email send (`--to_address` need to be specified, nothing else)
+- `--test_mode` to trigger a quick test email send
 - An array of absolute file path for attachments as `--attachment_files`  
 - A specific sender name as `--override_fromname`  
 - A specific sender address as `--override_fromemail`
