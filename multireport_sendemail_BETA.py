@@ -343,8 +343,109 @@ def get_fromname_fromemail(options):
                 return f"{fromname} <{fromemail}>" if fromname else fromemail, fromemail
         return None, None
     except Exception as e:
-        process_output(True, f"A problem occurred retrieving data: {e}", 1)            
-            
+        process_output(True, f"A problem occurred retrieving data: {e}", 1)       
+        
+def get_test_message():
+    return f"""
+<!-- Preheader -->
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">
+  SendEmail test successful.
+</div>
+
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background:#f5f7fb;margin:0;padding:0;">
+  <tr>
+    <td align="center" style="padding:24px 12px;">
+      <!-- Container -->
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width:600px;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e6e9f2;">
+        <!-- Header / Brand -->
+        <tr>
+          <td align="center" class="header-gradient" style="padding:20px 24px;">
+            <table role="presentation" width="100%">
+              <tr>
+                <td align="left" style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#eaf2ff;letter-spacing:.3px;">
+                  V {__version__}
+                </td>
+                <td align="right">
+                  <span style="display:inline-block;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.18);color:#fff;font-family:Arial,Helvetica,sans-serif;font-size:12px;">
+                    Test Mode
+                  </span>
+                </td>
+              </tr>
+            </table>
+            <h1 style="margin:14px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:26px;line-height:1.25;color:#ffffff;">
+              ✅ SendEmail Test Passed ✅
+            </h1>
+          </td>
+        </tr>
+
+        <!-- Body -->
+        <tr>
+          <td style="padding:28px 24px 8px 24px;">
+            <p style="margin:0 0 12px 0;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.65;color:#222;">
+              Glad you received the email. 🎉
+            </p>
+            <p style="margin:0 0 14px 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.7;color:#444;">
+              Also the <b>first part</b> of the <b>LogFile</b> has been attached to this message.
+            </p>
+
+            <!-- Info card -->
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border:1px solid #edf0f6;border-radius:12px;background:#f9fbff;">
+              <tr>
+                <td style="padding:14px 16px;">
+                  <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:#1f2937;">
+                    To see the full log grab the file from the <i>sendemail_log</i> folder
+                  </p>
+                </td>
+              </tr>
+            </table>
+
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="padding:14px 24px 24px 24px;">
+            <hr style="border:none;border-top:1px solid #eef1f6;margin:0 0 12px 0;">
+            <table role="presentation" width="100%">
+              <tr>
+                <td align="left" style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#6b7280;">
+                  Provided with &lt;3 by <span style="color:#111827;font-weight:600;">Oxyde</span>
+                </td>
+                <td align="right" style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#9ca3af;">
+                  <a href="https://github.com/oxyde1989/standalone-tn-send-email/issues" style="color:#6b7280;text-decoration:none;">⚙️ Need support?</a> ·
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+      </table>
+      <!-- /Container -->
+
+      <!-- Legal tiny -->
+      <p style="max-width:600px;margin:12px auto 0 auto;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.6;color:#9aa0a6;">
+        ⭐ If you like my work, consider giving it a star on <a href="https://github.com/oxyde1989/standalone-tn-send-email" style="color:#3b82f6;text-decoration:none;">GitHub</a>.
+      </p>
+    </td>
+  </tr>
+</table>
+
+<!-- Dark mode -->
+<style>
+td.header-gradient {{
+    background:linear-gradient(135deg,#3b82f6,#6366f1);
+}}
+@media (prefers-color-scheme: dark) {{
+  table[role="presentation"] {{ background:#0b0f14 !important; }}
+  h1, p, td, a {{ color:#e5e7eb !important; }}
+  a {{ border-color:#4f46e5 !important; background:#4f46e5 !important; }}
+  td.header-gradient {{
+    background: linear-gradient(135deg, #1e3a8a, #312e81) !important;
+  }}  
+}}
+</style>
+"""
+                   
 def send_email(subject, to_address, mail_body_html, attachment_files, email_config, provider, bulk_email):
     """
     Function to send an email via SMTP or Gmail OAuth based on the provider available
@@ -704,19 +805,8 @@ if __name__ == "__main__":
     
     if args.test_mode:
         print("Activating test mode") 
-        args.subject = "TN SendEmail Test mode"        
-        args.mail_body_html = """
-            <div style="font-family: Arial, sans-serif; color: #222; padding: 20px;">
-                <h1 style="color: #3366cc;">Testing Sendemail!</h1>
-                <p>
-                    I'm glad that you received that email.<br>
-                    Also <b>first part</b> of LogFile has been attached!
-                </p>
-                <p style="font-size: 14px; color: #888;">
-                    Provided with &lt;3 by Oxyde
-                </p>
-            </div>
-        """
+        args.subject = f"📩 TN SendEmail Test mode V{__version__}"        
+        args.mail_body_html = get_test_message()
         args.attachment_files = None
         args.mail_bulk = None
         args.debug_enabled = True
