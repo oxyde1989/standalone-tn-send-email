@@ -12,9 +12,37 @@ from email import message_from_string
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
-##### V 1.27
+##### V 1.30
 ##### Stand alone script to send email via Truenas
-__version__ = "1.27"
+__version__ = "1.30"
+
+class CheckForUpdate:
+    """
+        this class rely on the built-in sendemail to deliver a notify when an update is available. Considering that update are not so frequent, use the --notify_update on a weekly cronjob to avoid spam
+    """    
+    def __init__(self):
+        print(f"Current SendEmail version: {__version__}")
+        if not check_for_update(__version__):
+            print("No update needed")
+            sys.exit(0)
+        else:
+            f_subject = f"TN SendEmail update available"
+            f_text = f"NEW VERSION AVAILABLE ON GITHUB. Consider to upgrade!"
+            print(f"{f_text}")
+            payload_dict = {"subject": f_subject, "text": f_text}
+            payload = json.dumps(payload_dict)    
+            try:
+                midclt_path = "/usr/bin/midclt"
+                if not os.path.exists(midclt_path):
+                    midclt_path = "/usr/local/bin/midclt"
+                    if not os.path.exists(midclt_path):
+                        print("Failed to load midclt")
+                        sys.exit(1)
+                subprocess.run([midclt_path, "call", "mail.send", payload], check=True)
+                sys.exit(0)
+            except subprocess.CalledProcessError as e:
+                print(f"[ERROR] email fail: {e}")            
+                sys.exit(1)                     
 
 def validate_arguments(args):
     """
@@ -799,9 +827,13 @@ if __name__ == "__main__":
     parser.add_argument("--debug_enabled", help="OPTIONAL use to let the script debug all steps into log files. Usefull for troubleshooting", action='store_true')
     parser.add_argument("--override_fromname", help="OPTIONAL override sender name from TN config")
     parser.add_argument("--override_fromemail", help="OPTIONAL override sender email from TN config")
-    parser.add_argument("--test_mode", help="OPTIONAL use to let the script override all info and quickly send a sample email. If the script is in the same multi report folder, the fallback will be used anyway", action='store_true')        
+    parser.add_argument("--test_mode", help="OPTIONAL use to let the script override all info and quickly send a sample email. If the script is in the same multi report folder, the fallback will be used anyway", action='store_true')  
+    parser.add_argument("--notify_update", help="OPTIONAL use to let the script to only check the update availability, and notify. Use in a cronjob with a weekly check", action='store_true')          
     
     args = parser.parse_args()
+    
+    if args.notify_update:
+        CheckForUpdate()
     
     if args.test_mode:
         print("Activating test mode") 

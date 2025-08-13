@@ -53,7 +53,7 @@ Calling the script from crontab, with the debug enabled, can lead to problem if 
 
 > **Logs file not obviously expose credentials or access token**, but dont forget to cleanup after a debug session anyway to not expose more-or-less sensitive data in your usage context.
 
-## Test mode
+## 🚧 Test mode
 If you wanna just test the basic function fast and quickly, use the `--test_mode` and the script will compose and send a test email to the actual user email address. In test mode, **also the debug will be enabled automatically**.
 If the script is in the same `Multi Report` folder, the fallback from the `multi_report_config.txt` `FromName` and `From` will be used, so you can ensure that the fallbacks will work.
 
