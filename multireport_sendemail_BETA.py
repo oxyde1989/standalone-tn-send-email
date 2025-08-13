@@ -15,6 +15,8 @@ from google.oauth2.credentials import Credentials
 ##### V 1.35
 ##### Stand alone script to send email via Truenas
 __version__ = "1.35"
+__ghlink__ = "https://github.com/oxyde1989/standalone-tn-send-email"
+__ghlink_raw__ = "https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/main/multireport_sendemail.py"
 
 class CheckForUpdate:
     """
@@ -66,7 +68,7 @@ td.header-gradient {{
               You are receiving this email because SendEmail detect that your version is out-of-date.
             </p>
             <p style="margin:0 0 14px 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.7;color:#444;">
-              Read carefully the release notes and consider to update. Grab the latest version from <a href="https://github.com/oxyde1989/standalone-tn-send-email" style="color:#3b82f6;text-decoration:none;">GitHub</a>
+              Read carefully the release notes and consider to update. Grab the latest version from <a href="{__ghlink__}" style="color:#3b82f6;text-decoration:none;">GitHub</a>
             </p>
           </td>
         </tr>
@@ -81,7 +83,7 @@ td.header-gradient {{
                   Provided with &lt;3 by <span style="color:#111827;font-weight:600;">Oxyde</span>
                 </td>
                 <td align="right" style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#9ca3af;">
-                  <a href="https://github.com/oxyde1989/standalone-tn-send-email/issues" style="color:#6b7280;text-decoration:none;">⚙️ Need support?</a> ·
+                  <a href="{__ghlink__}/issues" style="color:#6b7280;text-decoration:none;">⚙️ Need support?</a>
                 </td>
               </tr>
             </table>
@@ -93,26 +95,27 @@ td.header-gradient {{
 
       <!-- Legal tiny -->
       <p style="max-width:600px;margin:12px auto 0 auto;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.6;color:#9aa0a6;">
-        ⭐ If you like my work, consider giving it a star on <a href="https://github.com/oxyde1989/standalone-tn-send-email" style="color:#3b82f6;text-decoration:none;">GitHub</a>.
+        ⭐ If you like my work, consider giving it a star on <a href="{__ghlink__}" style="color:#3b82f6;text-decoration:none;">GitHub</a>.
       </p>
     </td>
   </tr>
 </table>
         
 """             
-        print(f"Current version: {__version__}")
-        f_update_available, f_new_version = check_for_update(__version__)
-        print(f"GitHub version: {f_new_version}")
-        if not f_update_available:
-            print("All good, no update needed. Keep enjoy!")
-            sys.exit(0)
-        else:
-            f_subject = f"🔥TN SendEmail {f_new_version} available"
-            f_text = get_update_message()
-            print("NEW VERSION AVAILABLE ON GITHUB. Consider to upgrade!")
-            payload_dict = {"subject": f_subject, "html": f_text}
-            payload = json.dumps(payload_dict)    
-            try:
+
+        try:
+            print(f"Current version: {__version__}")
+            f_update_available, f_new_version = check_for_update(__version__)
+            print(f"GitHub version: {f_new_version}")
+            if not f_update_available:
+                print("All good, no update needed. Keep enjoy!")
+                sys.exit(0)
+            else:
+                f_subject = f"🔥TN SendEmail {f_new_version} available"
+                f_text = get_update_message()
+                print(f"NEW VERSION {f_new_version} AVAILABLE ON GITHUB. Consider to upgrade!")
+                payload_dict = {"subject": f_subject, "html": f_text}
+                payload = json.dumps(payload_dict)    
                 midclt_path = "/usr/bin/midclt"
                 if not os.path.exists(midclt_path):
                     midclt_path = "/usr/local/bin/midclt"
@@ -120,10 +123,10 @@ td.header-gradient {{
                         print("Failed to load midclt")
                         sys.exit(1)
                 subprocess.run([midclt_path, "call", "mail.send", payload], check=True)
-                sys.exit(0)
-            except subprocess.CalledProcessError as e:
-                print(f"[ERROR] email fail: {e}")            
-                sys.exit(1)                     
+                sys.exit(0) 
+        except Exception as e:
+            print(f"[ERROR] email fail: {e}")            
+            sys.exit(1)                    
 
 def validate_arguments(args):
     """
@@ -149,9 +152,8 @@ def validate_arguments(args):
             print(f"{sfw}")
             
 def check_for_update(local_version):
-    github_raw_url = "https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/main/multireport_sendemail.py"
     try:
-        with urllib.request.urlopen(github_raw_url, timeout=5) as response:
+        with urllib.request.urlopen(__ghlink_raw__, timeout=5) as response:
             content = response.read().decode("utf-8")
             match = re.search(r'__version__\s*=\s*[\'"](\d+\.\d+)[\'"]', content)
             if match:
@@ -535,7 +537,7 @@ td.header-gradient {{
                   Provided with &lt;3 by <span style="color:#111827;font-weight:600;">Oxyde</span>
                 </td>
                 <td align="right" style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#9ca3af;">
-                  <a href="https://github.com/oxyde1989/standalone-tn-send-email/issues" style="color:#6b7280;text-decoration:none;">⚙️ Need support?</a> ·
+                  <a href="{__ghlink__}/issues" style="color:#6b7280;text-decoration:none;">⚙️ Need support?</a>
                 </td>
               </tr>
             </table>
@@ -547,7 +549,7 @@ td.header-gradient {{
 
       <!-- Legal tiny -->
       <p style="max-width:600px;margin:12px auto 0 auto;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.6;color:#9aa0a6;">
-        ⭐ If you like my work, consider giving it a star on <a href="https://github.com/oxyde1989/standalone-tn-send-email" style="color:#3b82f6;text-decoration:none;">GitHub</a>.
+        ⭐ If you like my work, consider giving it a star on <a href="{__ghlink__}" style="color:#3b82f6;text-decoration:none;">GitHub</a>.
       </p>
     </td>
   </tr>
