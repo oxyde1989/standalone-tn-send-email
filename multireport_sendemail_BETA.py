@@ -12,9 +12,9 @@ from email import message_from_string
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
-##### V 1.25
+##### V 1.26
 ##### Stand alone script to send email via Truenas
-__version__ = "1.25"
+__version__ = "1.26"
 
 def validate_arguments(args):
     """
@@ -123,7 +123,7 @@ def process_output(error, detail="", exit_code=None):
         Centralized output response 
         - error bool detail string exit_code 0 (ok) 1 (ko) or None (ignore)
     """                   
-    response = json.dumps({"error": error, "detail": detail, "logfile": log_file, "total_attach": attachment_count, "ok_attach": attachment_count_valid}, ensure_ascii=False)
+    response = json.dumps({"version": __version__,"error": error, "detail": detail, "logfile": log_file, "total_attach": attachment_count, "ok_attach": attachment_count_valid}, ensure_ascii=False)
     append_log(f"{detail}") 
     print(response)
     if exit_code is not None:
@@ -698,7 +698,7 @@ if __name__ == "__main__":
     parser.add_argument("--debug_enabled", help="OPTIONAL use to let the script debug all steps into log files. Usefull for troubleshooting", action='store_true')
     parser.add_argument("--override_fromname", help="OPTIONAL override sender name from TN config")
     parser.add_argument("--override_fromemail", help="OPTIONAL override sender email from TN config")
-    parser.add_argument("--test_mode", help="OPTIONAL use to let the script override all info and quickly send a sample email", action='store_true')        
+    parser.add_argument("--test_mode", help="OPTIONAL use to let the script override all info and quickly send a sample email. If the script is in the same multi report folder, the fallback will be used anyway", action='store_true')        
     
     args = parser.parse_args()
     
@@ -731,6 +731,7 @@ if __name__ == "__main__":
         if args.test_mode:
             append_log("### TEST MODE ON ###")
             args.attachment_files = [log_file]
+        append_log(f"### Script Version: {__version__} ###")    
         append_log(f"File {log_file} successfully generated")
         append_log(f"{log_file_count} totals file log")
         
@@ -768,7 +769,7 @@ if __name__ == "__main__":
         append_log("Check for update")
         if check_for_update(__version__):
             final_output_message = final_output_message + "\n>> NEW VERSION AVAILABLE >>"    
-            print(">> NEW VERSION AVAILABLE ON GITHUB. Consider to upgrade! >>");    
+            print(">> NEW VERSION AVAILABLE ON GITHUB. Consider to upgrade! >>")    
         
         if attachment_count_valid < attachment_count:
             final_output_message = final_output_message + "\n>> Soft warning: something wrong with 1 or more attachments >>"

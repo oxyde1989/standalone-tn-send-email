@@ -768,7 +768,7 @@ if __name__ == "__main__":
         append_log("Check for update")
         if check_for_update(__version__):
             final_output_message = final_output_message + "\n>> NEW VERSION AVAILABLE >>"    
-            print(">> NEW VERSION AVAILABLE ON GITHUB. Consider to upgrade! >>");    
+            print(">> NEW VERSION AVAILABLE ON GITHUB. Consider to upgrade! >>")    
         
         if attachment_count_valid < attachment_count:
             final_output_message = final_output_message + "\n>> Soft warning: something wrong with 1 or more attachments >>"

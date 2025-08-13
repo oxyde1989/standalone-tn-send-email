@@ -53,7 +53,8 @@ Calling the script from crontab, with the debug enabled, can lead to problem if 
 
 > **Logs file not obviously expose credentials or access token**, but dont forget to cleanup after a debug session anyway to not expose more-or-less sensitive data in your usage context.
 
-If you wanna just test the basic function fast and quickly, use the `--test_mode` and the script will compose and send a test email to the actual user email address. If an address is not specified the script will fail gracefully. In test mode, also the debug will be enabled
+If you wanna just test the basic function fast and quickly, use the `--test_mode` and the script will compose and send a test email to the actual user email address. If an address is not specified the script will fail gracefully. In test mode, also the debug will be enabled.
+If the script is in the same `Multi Report` folder, the fallback from the `multi_report_config.txt` `FromName` and `From` will be used.
 > **The log file attached will not contain all the info generated after the file itself will be attached**, but this not affect the original file in the `sendemail_log` folder. 
 
 ---
