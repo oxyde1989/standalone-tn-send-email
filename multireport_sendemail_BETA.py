@@ -12,9 +12,9 @@ from email import message_from_string
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
-##### V 1.26
+##### V 1.27
 ##### Stand alone script to send email via Truenas
-__version__ = "1.26"
+__version__ = "1.27"
 
 def validate_arguments(args):
     """
