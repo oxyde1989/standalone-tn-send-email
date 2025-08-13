@@ -12,24 +12,105 @@ from email import message_from_string
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
-##### V 1.30
+##### V 1.35
 ##### Stand alone script to send email via Truenas
-__version__ = "1.30"
+__version__ = "1.35"
 
 class CheckForUpdate:
     """
-        this class rely on the built-in sendemail to deliver a notify when an update is available. Considering that update are not so frequent, use the --notify_update on a weekly cronjob to avoid spam
-    """    
+        this class rely on the built-in sendemail to deliver a notify when an update is available. Considering that update are not so frequent, use the --notify_update on a weekly cronjob to avoid unecessary pings
+    """      
     def __init__(self):
-        print(f"Current SendEmail version: {__version__}")
-        if not check_for_update(__version__):
-            print("No update needed")
+        
+        def get_update_message():
+            return f"""
+<style>
+td.header-gradient {{
+    background:linear-gradient(135deg,#3b82f6,#6366f1);
+}}
+</style>        
+<!-- Preheader -->
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">
+  SendEmail update available
+</div>
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background:#f5f7fb;margin:0;padding:0;">
+  <tr>
+    <td align="center" style="padding:24px 12px;">
+      <!-- Container -->
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width:600px;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e6e9f2;">
+        <!-- Header / Brand -->
+        <tr>
+          <td align="center" class="header-gradient" style="padding:20px 24px;">
+            <table role="presentation" width="100%">
+              <tr>
+                <td align="left" style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#eaf2ff;letter-spacing:.3px;">
+                  V {__version__} --> V {f_new_version}
+                </td>
+                <td align="right">
+                  <span style="display:inline-block;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.18);color:#fff;font-family:Arial,Helvetica,sans-serif;font-size:12px;">
+                    New Version Released
+                  </span>
+                </td>
+              </tr>
+            </table>
+            <h1 style="margin:14px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:26px;line-height:1.25;color:#ffffff;">
+              🔥 SendEmail update available 🔥
+            </h1>
+          </td>
+        </tr>
+
+        <!-- Body -->
+        <tr>
+          <td style="padding:28px 24px 8px 24px;">
+            <p style="margin:0 0 12px 0;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.65;color:#222;">
+              You are receiving this email because SendEmail detect that your version is out-of-date.
+            </p>
+            <p style="margin:0 0 14px 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.7;color:#444;">
+              Read carefully the release notes and consider to update. Grab the latest version from <a href="https://github.com/oxyde1989/standalone-tn-send-email" style="color:#3b82f6;text-decoration:none;">GitHub</a>
+            </p>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="padding:14px 24px 24px 24px;">
+            <hr style="border:none;border-top:1px solid #eef1f6;margin:0 0 12px 0;">
+            <table role="presentation" width="100%">
+              <tr>
+                <td align="left" style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#6b7280;">
+                  Provided with &lt;3 by <span style="color:#111827;font-weight:600;">Oxyde</span>
+                </td>
+                <td align="right" style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#9ca3af;">
+                  <a href="https://github.com/oxyde1989/standalone-tn-send-email/issues" style="color:#6b7280;text-decoration:none;">⚙️ Need support?</a> ·
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+      </table>
+      <!-- /Container -->
+
+      <!-- Legal tiny -->
+      <p style="max-width:600px;margin:12px auto 0 auto;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.6;color:#9aa0a6;">
+        ⭐ If you like my work, consider giving it a star on <a href="https://github.com/oxyde1989/standalone-tn-send-email" style="color:#3b82f6;text-decoration:none;">GitHub</a>.
+      </p>
+    </td>
+  </tr>
+</table>
+        
+"""             
+        print(f"Current version: {__version__}")
+        f_update_available, f_new_version = check_for_update(__version__)
+        print(f"GitHub version: {f_new_version}")
+        if not f_update_available:
+            print("All good, no update needed. Keep enjoy!")
             sys.exit(0)
         else:
-            f_subject = f"TN SendEmail update available"
-            f_text = f"NEW VERSION AVAILABLE ON GITHUB. Consider to upgrade!"
-            print(f"{f_text}")
-            payload_dict = {"subject": f_subject, "text": f_text}
+            f_subject = f"🔥TN SendEmail {f_new_version} available"
+            f_text = get_update_message()
+            print("NEW VERSION AVAILABLE ON GITHUB. Consider to upgrade!")
+            payload_dict = {"subject": f_subject, "html": f_text}
             payload = json.dumps(payload_dict)    
             try:
                 midclt_path = "/usr/bin/midclt"
@@ -75,11 +156,10 @@ def check_for_update(local_version):
             match = re.search(r'__version__\s*=\s*[\'"](\d+\.\d+)[\'"]', content)
             if match:
                 remote_version = match.group(1)
-                if remote_version > local_version:
-                    return True
+                return remote_version > local_version, remote_version
     except Exception as e:
         pass
-    return False                       
+    return False, None                       
         
 def is_secure_directory(directory_to_check=None):
     """
@@ -375,6 +455,21 @@ def get_fromname_fromemail(options):
         
 def get_test_message():
     return f"""
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
+<style>
+td.header-gradient {{
+    background:linear-gradient(135deg,#3b82f6,#6366f1);
+}}
+@media (prefers-color-scheme: dark) {{
+  table[role="presentation"] {{ background:#0b0f14 !important; }}
+  h1, p, td, a {{ color:#e5e7eb !important; }}
+  a {{ border-color:#4f46e5 !important; background:#4f46e5 !important; }}
+  td.header-gradient {{
+    background: linear-gradient(135deg, #1e3a8a, #312e81) !important;
+  }}  
+}}
+</style>
 <!-- Preheader -->
 <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">
   SendEmail test successful.
@@ -457,21 +552,6 @@ def get_test_message():
     </td>
   </tr>
 </table>
-
-<!-- Dark mode -->
-<style>
-td.header-gradient {{
-    background:linear-gradient(135deg,#3b82f6,#6366f1);
-}}
-@media (prefers-color-scheme: dark) {{
-  table[role="presentation"] {{ background:#0b0f14 !important; }}
-  h1, p, td, a {{ color:#e5e7eb !important; }}
-  a {{ border-color:#4f46e5 !important; background:#4f46e5 !important; }}
-  td.header-gradient {{
-    background: linear-gradient(135deg, #1e3a8a, #312e81) !important;
-  }}  
-}}
-</style>
 """
                    
 def send_email(subject, to_address, mail_body_html, attachment_files, email_config, provider, bulk_email):
@@ -889,9 +969,10 @@ if __name__ == "__main__":
         final_output_message = "<< Email Sent >> "
         
         append_log("Check for update")
-        if check_for_update(__version__):
-            final_output_message = final_output_message + "\n>> NEW VERSION AVAILABLE >>"    
-            print(">> NEW VERSION AVAILABLE ON GITHUB. Consider to upgrade! >>")    
+        c_update_available, c_new_version = check_for_update(__version__)
+        if c_update_available:
+            final_output_message = final_output_message + f"\n>> NEW VERSION {c_new_version} AVAILABLE >>"    
+            print(f">> NEW VERSION {c_new_version} AVAILABLE ON GITHUB. Consider to upgrade! >>")    
         
         if attachment_count_valid < attachment_count:
             final_output_message = final_output_message + "\n>> Soft warning: something wrong with 1 or more attachments >>"
