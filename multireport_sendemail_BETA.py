@@ -288,6 +288,16 @@ def render_template(name, **ctx):
         return EMAIL_TEMPLATE[name].format(**ctx)
     except Exception as e:
         return f"[ERROR] rendering template '{name}': {e}"
+    
+def quick_tn_builtin_sendemail(tn_subject, tn_text):
+    tn_payload_dict = {"subject": tn_subject, "html": tn_text}
+    tn_payload = json.dumps(tn_payload_dict)    
+    tn_midclt_path = "/usr/bin/midclt"
+    if not os.path.exists(tn_midclt_path):
+        tn_midclt_path = "/usr/local/bin/midclt"
+        if not os.path.exists(tn_midclt_path):
+            raise FileNotFoundError("[ERROR]: Failed to load midclt")
+    subprocess.run([tn_midclt_path, "call", "mail.send", tn_payload], check=True) 
 
 class CheckForUpdate: 
     """
@@ -405,22 +415,18 @@ class PerformUpdate:
             if args.notify_self_update:
                 self.post_update_send_notify()
                 append_log("Notify send") 
-            self.updatepath_process_output(False, f"New version {new_version} intsalled", 0)        
+            self.updatepath_process_output(False, f"New version {new_version} installed", 0)        
         except Exception as e:
             self.updatepath_process_output(True, f"[ERROR]: {e}", 1)       
             
     def post_update_send_notify(self):    
         append_log("preparing email to notify the update") 
-        f_subject = f"🔥TN SendEmail {self.new_version} intsalled"
+        f_subject = f"🔥TN SendEmail {self.new_version} installed"
         f_text = self.get_postupdate_message()
-        payload_dict = {"subject": f_subject, "html": f_text}
-        payload = json.dumps(payload_dict)    
-        midclt_path = "/usr/bin/midclt"
-        if not os.path.exists(midclt_path):
-            midclt_path = "/usr/local/bin/midclt"
-            if not os.path.exists(midclt_path):
-                self.updatepath_process_output(True, "[ERROR]: Failed to load midclt", 1)
-        subprocess.run([midclt_path, "call", "mail.send", payload], check=True)         
+        try:
+            quick_tn_builtin_sendemail(f_subject, f_text)   
+        except Exception as e:
+            append_log("notify email send failed, sorry")      
    
 class NotifyForUpdate:
     """
@@ -436,15 +442,10 @@ class NotifyForUpdate:
             if f_update_available:
                 f_subject = f"🔥TN SendEmail {f_new_version} available"
                 f_text = get_update_message()
-                payload_dict = {"subject": f_subject, "html": f_text}
-                payload = json.dumps(payload_dict)    
-                midclt_path = "/usr/bin/midclt"
-                if not os.path.exists(midclt_path):
-                    midclt_path = "/usr/local/bin/midclt"
-                    if not os.path.exists(midclt_path):
-                        print("Failed to load midclt")
-                        sys.exit(1)
-                subprocess.run([midclt_path, "call", "mail.send", payload], check=True)
+                try:
+                    quick_tn_builtin_sendemail(f_subject, f_text)   
+                except Exception as e:
+                    print("notify email send failed, sorry") 
         except Exception as e:
             print(f"[ERROR]: {e}")            
             sys.exit(1)                                             
@@ -502,7 +503,35 @@ def is_secure_directory(directory_to_check=None):
             return append_message  
         except Exception as e:
             print(f"Something wrong checking security issue: {e} checking {directory_to_check}")
-            sys.exit(1)          
+            sys.exit(1)        
+            
+def is_secure_directory_forupdate(__script_path__, __version__, directory_to_check=None):
+    """
+    This function centralize some security check to perform before try to update, despite the is_secure_directory function that only warning, in this case the process will be aborted
+    """
+    if os.path.islink(__script_path__):
+        real = os.path.realpath(__script_path__)
+        err = {"version": __version__, "error": True, "detail": f"[ERROR]: script is a symlink; updater should be run on the real path: {real}"}
+        print(json.dumps(err, ensure_ascii=False))
+        sys.exit(1)
+        
+    directory = directory_to_check
+    if not directory:
+        directory = os.path.dirname(os.path.abspath(__script_path__)) or os.getcwd()
+    try:
+        st = os.stat(directory, follow_symlinks=True)
+    except Exception as e:
+        err = {"version": __version__, "error": True, "detail": f"[ERROR]: cannot stat directory '{directory}': {e}"}
+        print(json.dumps(err, ensure_ascii=False))
+        sys.exit(1)
+
+    if bool(st.st_mode & stat.S_IWOTH):
+        err = {
+            "version": __version__, "error": True, "detail": (f"[SECURITY ERROR]: directory '{directory}' is accessible to non-priviliged users that are nor owner or in group; update aborted.")}
+        print(json.dumps(err, ensure_ascii=False))
+        sys.exit(1)
+
+    return True              
 
 def create_log_file():
     """
@@ -1152,6 +1181,7 @@ if __name__ == "__main__":
     if args.self_update:
         _, precheck = CheckForUpdate().parse_as_resp()
         if precheck:
+            is_secure_directory_forupdate(__script_path__, __version__)           
             args.debug_enabled = True
             log_file, log_file_count = create_log_file()
             PerformUpdate().apply_update()               
