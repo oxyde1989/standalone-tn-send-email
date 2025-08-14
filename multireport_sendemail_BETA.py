@@ -41,34 +41,55 @@ class CheckForUpdate:
 class PerformUpdate:
     def __init__(self):
         self.staging_dir = os.path.join(os.getcwd(), "sendemail_update")
+        self.new_version = None
+        self.backup_path = None
+        append_log(f"### Script Version: {__version__} ###")
+        append_log("### SELF UPDATE ACTIVATED ###") 
 
     def _create_update_dir(self):
+        append_log("Preparing sendemail_update dir") 
         if os.path.islink(self.staging_dir):
-            print(f"[ERROR]: {self.staging_dir} is a symlink. Operation not allowed for security reason")
-            sys.exit(1)
+            self.updatepath_process_output(True, f"[ERROR]: {self.staging_dir} is a symlink. Operation not allowed for security reason", 1)
         if not os.path.exists(self.staging_dir):
             os.makedirs(self.staging_dir, exist_ok=True)
+            append_log("Folder created") 
         elif not os.path.isdir(self.staging_dir):
-            print(f"[ERROR]: {self.staging_dir} exists and is not a directory?")
-            sys.exit(1)
+            self.updatepath_process_output(True, f"[ERROR]: {self.staging_dir} exists and is not a directory?", 1)
+        append_log("All checks performed") 
         return self.staging_dir
+    
+    def updatepath_process_output(self, error, detail="", exit_code=None):                
+        response = json.dumps({"version": __version__,"error": error, "detail": detail, "logfile": log_file, "new_version": self.new_version, "backup_version": self.backup_path}, ensure_ascii=False)
+        append_log(f"{detail}") 
+        print(response)
+        if exit_code is not None:
+            sys.exit(exit_code)      
 
     def _generate_timestamp(self):
+        append_log("generetaing a timestamp") 
         return f"{time.strftime('%Y%m%d_%H%M%S', time.localtime())}_{__script_name__}"
     
     def _verify_sha256(self, _payload, _remote_sha):
+        append_log("Performing sha256 check") 
         _local_sha = hashlib.sha256(_payload).hexdigest().lower()
+        append_log("local calculated")
         _expected_sha = _remote_sha.strip().split()[0].lower()
-        return hmac.compare_digest(_local_sha, _expected_sha)
+        append_log("remote retrieved")
+        _sharesult = hmac.compare_digest(_local_sha, _expected_sha)
+        append_log(f"result: {_sharesult}")
+        return _sharesult
 
     def apply_update(self):
         try:
+            append_log("Checking for update") 
             new_version, update_available = CheckForUpdate().parse_as_resp()
             if not update_available:
-                return None
+                self.updatepath_process_output(False, f"Version {__version__} is up to date", 0)
+            append_log(f"Update to the {new_version} version available") 
             d = self._create_update_dir()
             out_path = os.path.join(d, self._generate_timestamp())
             
+            append_log("retrieving from github last version")
             req = urllib.request.Request(__ghlink_raw__, headers={"User-Agent": "tn-sendemail-updater"})
             with urllib.request.urlopen(req, timeout=5) as r:
                 payload = r.read()
@@ -79,16 +100,20 @@ class PerformUpdate:
                 os.fsync(dir_fd)
             finally:
                 os.close(dir_fd)
+            append_log(f"file generated as temp {out_path}")
             
+            append_log("retrieving from github last SHA version")
             req_sha = urllib.request.Request(__ghlink_raw_sha__, headers={"User-Agent": "tn-sendemail-updater"})  
             with urllib.request.urlopen(req_sha, timeout=5) as r:
                 remote_sha = r.read().decode("utf-8")
                 
+            append_log("everything retrievied to perform sanity check")    
             check_sha = self._verify_sha256(payload, remote_sha)
             if not check_sha:
-                print("[ERROR]: SHA256 mismatch, aborting")
-                sys.exit(1) 
+                self.updatepath_process_output(True, "[ERROR]: SHA256 mismatch, aborting", 1)
+            append_log("sanity check passed")    
                 
+            append_log("swapping old and new file")    
             backup_name = self._generate_timestamp()
             backup_path = os.path.join(d, backup_name)         
             shutil.copy2(__script_path__, backup_path)    
@@ -98,14 +123,10 @@ class PerformUpdate:
             try:
                 os.fsync(dst_fd)
             finally:
-                os.close(dst_fd)                                     
-                             
-            out_response = json.dumps({"new_version": new_version, "backup_version": backup_path}, ensure_ascii=False) 
-            print(f"{out_response}")
-            return out_response
+                os.close(dst_fd)
+            self.updatepath_process_output(False, f"Update {new_version} applied", 0)        
         except Exception as e:
-            print(f"[ERROR]: {e}")
-            sys.exit(1)
+            self.updatepath_process_output(True, f"[ERROR]: {e}", 1)
    
 class NotifyForUpdate:
     """
@@ -319,7 +340,7 @@ def process_output(error, detail="", exit_code=None):
     append_log(f"{detail}") 
     print(response)
     if exit_code is not None:
-        sys.exit(exit_code)
+        sys.exit(exit_code)      
 
 def read_config_data():
     """
@@ -1007,8 +1028,9 @@ if __name__ == "__main__":
         sys.exit(0)   
         
     if args.self_update:
-        PerformUpdate().apply_update()    
-        sys.exit(0)           
+        args.debug_enabled = True
+        log_file, log_file_count = create_log_file()
+        PerformUpdate().apply_update()               
     
     if args.test_mode:
         print("Activating test mode") 
