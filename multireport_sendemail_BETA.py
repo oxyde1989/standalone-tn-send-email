@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
-import smtplib, json, argparse, os, stat, time, base64, subprocess, socket, uuid, requests, sys, re
-import urllib.request
+import smtplib, json, argparse, os, stat, time, base64, subprocess, socket, uuid, requests, urllib.request, sys, re, hashlib, hmac, shutil
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -12,11 +11,12 @@ from email import message_from_string
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
-##### V 1.35
+##### V 1.45
 ##### Stand alone script to send email via Truenas
-__version__ = "1.35"
+__version__ = "1.45"
 __ghlink__ = "https://github.com/oxyde1989/standalone-tn-send-email"
-__ghlink_raw__ = "https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/main/multireport_sendemail.py"
+__ghlink_raw__ = "https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/refs/heads/main/multireport_sendemail.py"
+__ghlink_raw_sha__ = "https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/refs/heads/main/multireport_sendemail.py.sha256"
 __script_path__ = os.path.abspath(__file__)
 __script_name__ = os.path.basename(__script_path__)
 
@@ -40,9 +40,7 @@ class CheckForUpdate:
 
 class PerformUpdate:
     def __init__(self):
-        self.url = __ghlink_raw__
         self.staging_dir = os.path.join(os.getcwd(), "sendemail_update")
-        self.basename = __script_name__
 
     def _create_update_dir(self):
         if os.path.islink(self.staging_dir):
@@ -51,32 +49,63 @@ class PerformUpdate:
         if not os.path.exists(self.staging_dir):
             os.makedirs(self.staging_dir, exist_ok=True)
         elif not os.path.isdir(self.staging_dir):
-            print(f"[ERROR] {self.staging_dir} exists and is not a directory?")
+            print(f"[ERROR]: {self.staging_dir} exists and is not a directory?")
             sys.exit(1)
         return self.staging_dir
 
     def _generate_timestamp(self):
-        return f"{time.strftime('%Y%m%d_%H%M%S', time.localtime())}_{self.basename}"
+        return f"{time.strftime('%Y%m%d_%H%M%S', time.localtime())}_{__script_name__}"
+    
+    def _verify_sha256(self, _payload, _remote_sha):
+        _local_sha = hashlib.sha256(_payload).hexdigest().lower()
+        _expected_sha = _remote_sha.strip().split()[0].lower()
+        return hmac.compare_digest(_local_sha, _expected_sha)
 
-    def perform_update(self):
-        new_version, update_available = CheckForUpdate().parse_as_resp()
-        if not update_available:
-            return None
-        d = self._create_update_dir()
-        out_path = os.path.join(d, self._generate_timestamp())
-        req = urllib.request.Request(self.url, headers={"User-Agent": "tn-sendemail-updater"})
-        with urllib.request.urlopen(req, timeout=5) as r:
-            payload = r.read()
-        with open(out_path, "wb") as f:
-            f.write(payload); f.flush(); os.fsync(f.fileno())
-        dir_fd = os.open(d, os.O_DIRECTORY)
+    def apply_update(self):
         try:
-            os.fsync(dir_fd)
-        finally:
-            os.close(dir_fd)
-        out_response = json.dumps({"downloaded_path": out_path, "new_version": new_version, "staging_dir": d}, ensure_ascii=False)  
-        print(f"{out_response}")  
-        return out_response
+            new_version, update_available = CheckForUpdate().parse_as_resp()
+            if not update_available:
+                return None
+            d = self._create_update_dir()
+            out_path = os.path.join(d, self._generate_timestamp())
+            
+            req = urllib.request.Request(__ghlink_raw__, headers={"User-Agent": "tn-sendemail-updater"})
+            with urllib.request.urlopen(req, timeout=5) as r:
+                payload = r.read()
+            with open(out_path, "wb") as f:
+                f.write(payload); f.flush(); os.fsync(f.fileno())
+            dir_fd = os.open(d, os.O_DIRECTORY)
+            try:
+                os.fsync(dir_fd)
+            finally:
+                os.close(dir_fd)
+            
+            req_sha = urllib.request.Request(__ghlink_raw_sha__, headers={"User-Agent": "tn-sendemail-updater"})  
+            with urllib.request.urlopen(req_sha, timeout=5) as r:
+                remote_sha = r.read().decode("utf-8")
+                
+            check_sha = self._verify_sha256(payload, remote_sha)
+            if not check_sha:
+                print("[ERROR]: SHA256 mismatch, aborting")
+                sys.exit(1) 
+                
+            backup_name = self._generate_timestamp()
+            backup_path = os.path.join(d, backup_name)         
+            shutil.copy2(__script_path__, backup_path)    
+            dst_dir = os.path.dirname(__script_path__)
+            os.replace(out_path, __script_path__)
+            dst_fd = os.open(dst_dir, os.O_DIRECTORY)
+            try:
+                os.fsync(dst_fd)
+            finally:
+                os.close(dst_fd)                                     
+                             
+            out_response = json.dumps({"new_version": new_version, "backup_version": backup_path}, ensure_ascii=False) 
+            print(f"{out_response}")
+            return out_response
+        except Exception as e:
+            print(f"[ERROR]: {e}")
+            sys.exit(1)
    
 class NotifyForUpdate:
     """
@@ -978,7 +1007,7 @@ if __name__ == "__main__":
         sys.exit(0)   
         
     if args.self_update:
-        PerformUpdate().perform_update()    
+        PerformUpdate().apply_update()    
         sys.exit(0)           
     
     if args.test_mode:
