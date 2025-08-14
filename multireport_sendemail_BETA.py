@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
-import smtplib, json, argparse, os, stat, time, base64, subprocess, socket, uuid, requests, urllib.request, sys, re, hashlib, hmac, shutil
-from datetime import datetime
+import smtplib, json, argparse, os, stat, time, base64, subprocess, socket, uuid, requests, urllib.request, sys, re, hashlib, hmac, shutil, datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
@@ -354,7 +353,8 @@ class PerformUpdate:
 
     def _generate_timestamp(self):
         append_log("generating a temp timestamp") 
-        return f"{time.strftime('%Y%m%d_%H%M%S', time.localtime())}_{__script_name__}"
+        now = datetime.datetime.now()
+        return f"{now:%Y%m%d_%H%M%S}_{now.microsecond//1000:03d}_{os.getpid()}_{__script_name__}"        
     
     def _verify_sha256(self, _payload, _remote_sha):
         append_log("Performing sha256 check") 
