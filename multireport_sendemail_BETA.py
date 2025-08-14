@@ -11,9 +11,9 @@ from email import message_from_string
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
-##### V 1.45
+##### V 1.50
 ##### Stand alone script to send email via Truenas
-__version__ = "1.45"
+__version__ = "1.50"
 __ghlink__ = "https://github.com/oxyde1989/standalone-tn-send-email"
 __ghlink_raw__ = "https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/refs/heads/main/multireport_sendemail.py"
 __ghlink_raw_sha__ = "https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/refs/heads/main/multireport_sendemail.py.sha256"
@@ -45,6 +45,87 @@ class PerformUpdate:
         self.backup_path = None
         append_log(f"### Script Version: {__version__} ###")
         append_log("### SELF UPDATE ACTIVATED ###") 
+        
+    def get_postupdate_message(self):
+        return f"""
+<style>
+td.header-gradient {{
+    background:linear-gradient(135deg,#3b82f6,#6366f1);
+}}
+</style>        
+<!-- Preheader -->
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">
+  SendEmail update applied
+</div>
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background:#f5f7fb;margin:0;padding:0;">
+  <tr>
+    <td align="center" style="padding:24px 12px;">
+      <!-- Container -->
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width:600px;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e6e9f2;">
+        <!-- Header / Brand -->
+        <tr>
+          <td align="center" class="header-gradient" style="padding:20px 24px;">
+            <table role="presentation" width="100%">
+              <tr>
+                <td align="left" style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#eaf2ff;letter-spacing:.3px;">
+                  V {self.new_version}
+                </td>
+                <td align="right">
+                  <span style="display:inline-block;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.18);color:#fff;font-family:Arial,Helvetica,sans-serif;font-size:12px;">
+                    Old {__version__} has been replaced
+                  </span>
+                </td>
+              </tr>
+            </table>
+            <h1 style="margin:14px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:26px;line-height:1.25;color:#ffffff;">
+              🔥 SendEmail update has been applied 🔥
+            </h1>
+          </td>
+        </tr>
+
+        <!-- Body -->
+        <tr>
+          <td style="padding:28px 24px 8px 24px;">
+            <p style="margin:0 0 12px 0;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.65;color:#222;">
+              This notification has been sent because SendEmail successfully applied an update.
+            </p>
+            <p style="margin:0 0 14px 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.7;color:#444;">
+              If you face some problem, the backup of the previous version is available in the <i>sendemail_update</i> folder, instead you can manually delete it if no more needed.
+              <br>
+
+            </p>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="padding:14px 24px 24px 24px;">
+            <hr style="border:none;border-top:1px solid #eef1f6;margin:0 0 12px 0;">
+            <table role="presentation" width="100%">
+              <tr>
+                <td align="left" style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#6b7280;">
+                  Provided with &lt;3 by <span style="color:#111827;font-weight:600;">Oxyde</span>
+                </td>
+                <td align="right" style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#9ca3af;">
+                  <a href="{__ghlink__}/issues" style="color:#6b7280;text-decoration:none;">⚙️ Need support?</a>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+      </table>
+      <!-- /Container -->
+
+      <!-- Legal tiny -->
+      <p style="max-width:600px;margin:12px auto 0 auto;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.6;color:#9aa0a6;">
+        ⭐ If you like my work, consider giving it a star on <a href="{__ghlink__}" style="color:#3b82f6;text-decoration:none;">GitHub</a>.
+      </p>
+    </td>
+  </tr>
+</table>
+        
+"""           
 
     def _create_update_dir(self):
         append_log("Preparing sendemail_update dir") 
@@ -83,6 +164,7 @@ class PerformUpdate:
         try:
             append_log("Checking for update") 
             new_version, update_available = CheckForUpdate().parse_as_resp()
+            self.new_version = new_version
             if not update_available:
                 self.updatepath_process_output(False, f"Version {__version__} is up to date", 0)
             append_log(f"Update to the {new_version} version available") 
@@ -124,9 +206,25 @@ class PerformUpdate:
                 os.fsync(dst_fd)
             finally:
                 os.close(dst_fd)
-            self.updatepath_process_output(False, f"Update {new_version} applied", 0)        
+            if args.notify_self_update:
+                self.post_update_send_notify()
+                append_log("Notify send") 
+            self.updatepath_process_output(False, f"New version {new_version} intsalled", 0)        
         except Exception as e:
-            self.updatepath_process_output(True, f"[ERROR]: {e}", 1)
+            self.updatepath_process_output(True, f"[ERROR]: {e}", 1)       
+            
+    def post_update_send_notify(self):    
+        append_log("preparing email to notify the update") 
+        f_subject = f"🔥TN SendEmail {self.new_version} intsalled"
+        f_text = self.get_postupdate_message()
+        payload_dict = {"subject": f_subject, "html": f_text}
+        payload = json.dumps(payload_dict)    
+        midclt_path = "/usr/bin/midclt"
+        if not os.path.exists(midclt_path):
+            midclt_path = "/usr/local/bin/midclt"
+            if not os.path.exists(midclt_path):
+                self.updatepath_process_output(True, "[ERROR]: Failed to load midclt", 1)
+        subprocess.run([midclt_path, "call", "mail.send", payload], check=True)         
    
 class NotifyForUpdate:
     """
@@ -1015,7 +1113,8 @@ if __name__ == "__main__":
     parser.add_argument("--test_mode", help="OPTIONAL use to let the script override all info and quickly send a sample email. If the script is in the same multi report folder, the fallback will be used anyway", action='store_true')  
     parser.add_argument("--notify_update", help="OPTIONAL use to let the script to only check update availability, and notify the context user. Use in a cronjob with a weekly check", action='store_true')   
     parser.add_argument("--check_update", help="OPTIONAL use to let the script to only check update availability", action='store_true')              
-    parser.add_argument("--self_update", help="OPTIONAL use to let the script to check update availability and perform an update when needed", action='store_true')       
+    parser.add_argument("--self_update", help="OPTIONAL use to let the script to check update availability and perform an update when needed", action='store_true')      
+    parser.add_argument("--notify_self_update", help="OPTIONAL use to let the script to send a notification if a self update is performed", action='store_true')     
     
     args = parser.parse_args()
     
