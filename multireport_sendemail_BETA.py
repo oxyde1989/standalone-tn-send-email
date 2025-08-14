@@ -18,7 +18,7 @@ __version__ = "1.35"
 __ghlink__ = "https://github.com/oxyde1989/standalone-tn-send-email"
 __ghlink_raw__ = "https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/main/multireport_sendemail.py"
 
-class CheckForUpdate:
+class NotifyForUpdate:
     """
         this class rely on the built-in sendemail to deliver a notify when an update is available. Considering that update are not so frequent, use the --notify_update on a weekly cronjob to avoid unecessary pings
     """      
@@ -126,7 +126,22 @@ td.header-gradient {{
                 sys.exit(0) 
         except Exception as e:
             print(f"[ERROR] email fail: {e}")            
-            sys.exit(1)                    
+            sys.exit(1)  
+            
+class CheckForUpdate: 
+    """
+        this class will handle the update availability, usefull for other script that use the sendemail
+    """      
+    def __init__(self):  
+        try:
+            puo_update_available, puo_new_version = check_for_update(__version__)
+            puo_response = json.dumps({"version": __version__,"latest_version": puo_new_version, "need_update": puo_update_available}, ensure_ascii=False)
+            print(f"{puo_response}")
+            sys.exit(0)            
+        except Exception as e:
+            print(f"[ERROR]: {e}")
+            sys.exit(1)
+                                           
 
 def validate_arguments(args):
     """
@@ -154,7 +169,7 @@ def validate_arguments(args):
 def check_for_update(local_version):
     try:
         with urllib.request.urlopen(__ghlink_raw__, timeout=5) as response:
-            content = response.read().decode("utf-8")
+            content = response.read(2048).decode("utf-8")
             match = re.search(r'__version__\s*=\s*[\'"](\d+\.\d+)[\'"]', content)
             if match:
                 remote_version = match.group(1)
@@ -910,12 +925,16 @@ if __name__ == "__main__":
     parser.add_argument("--override_fromname", help="OPTIONAL override sender name from TN config")
     parser.add_argument("--override_fromemail", help="OPTIONAL override sender email from TN config")
     parser.add_argument("--test_mode", help="OPTIONAL use to let the script override all info and quickly send a sample email. If the script is in the same multi report folder, the fallback will be used anyway", action='store_true')  
-    parser.add_argument("--notify_update", help="OPTIONAL use to let the script to only check the update availability, and notify. Use in a cronjob with a weekly check", action='store_true')          
+    parser.add_argument("--notify_update", help="OPTIONAL use to let the script to only check the update availability, and notify. Use in a cronjob with a weekly check", action='store_true')         
+    parser.add_argument("--check_update", help="OPTIONAL use to let the script to only check the update availability, and get a proper output", action='store_true')       
     
     args = parser.parse_args()
     
     if args.notify_update:
-        CheckForUpdate()
+        NotifyForUpdate()
+        
+    if args.check_update:
+        CheckForUpdate()        
     
     if args.test_mode:
         print("Activating test mode") 
