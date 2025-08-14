@@ -230,7 +230,7 @@ td.header-gradient {{
               </tr>
             </table>
             <h1 style="margin:14px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:26px;line-height:1.25;color:#ffffff;">
-              🔥 SendEmail update has been applied 🔥
+              🛠 SendEmail update has been applied 🛠
             </h1>
           </td>
         </tr>
@@ -296,16 +296,18 @@ class CheckForUpdate:
     def __init__(self):  
         try:
             puo_update_available, puo_new_version = check_for_update(__version__)
-            puo_response = json.dumps({"version": __version__,"latest_version": puo_new_version, "need_update": puo_update_available}, ensure_ascii=False)
-            print(f"{puo_response}") 
+            puo_response = json.dumps({"version": __version__,"latest_version": puo_new_version, "need_update": puo_update_available}, ensure_ascii=False) 
             self.puo_update_available = puo_update_available
             self.puo_new_version = puo_new_version
+            self.puo_response = puo_response
         except Exception as e:
             print(f"[ERROR]: {e}")
             sys.exit(1)
             
     def parse_as_resp(self):
         return self.puo_new_version, self.puo_update_available    
+    def parse_as_output(self):
+        return self.puo_response   
 
 class PerformUpdate:
     """
@@ -341,15 +343,15 @@ class PerformUpdate:
             sys.exit(exit_code)      
 
     def _generate_timestamp(self):
-        append_log("generetaing a timestamp") 
+        append_log("generating a temp timestamp") 
         return f"{time.strftime('%Y%m%d_%H%M%S', time.localtime())}_{__script_name__}"
     
     def _verify_sha256(self, _payload, _remote_sha):
         append_log("Performing sha256 check") 
         _local_sha = hashlib.sha256(_payload).hexdigest().lower()
-        append_log("local calculated")
+        append_log("local sha256 calculated")
         _expected_sha = _remote_sha.strip().split()[0].lower()
-        append_log("remote retrieved")
+        append_log("remote sha256 retrieved")
         _sharesult = hmac.compare_digest(_local_sha, _expected_sha)
         append_log(f"result: {_sharesult}")
         return _sharesult
@@ -365,7 +367,7 @@ class PerformUpdate:
             d = self._create_update_dir()
             out_path = os.path.join(d, self._generate_timestamp())
             
-            append_log("retrieving from github last version")
+            append_log("retrieving from github latest version")
             req = urllib.request.Request(__ghlink_raw__, headers={"User-Agent": "tn-sendemail-updater"})
             with urllib.request.urlopen(req, timeout=5) as r:
                 payload = r.read()
@@ -378,12 +380,12 @@ class PerformUpdate:
                 os.close(dir_fd)
             append_log(f"file generated as temp {out_path}")
             
-            append_log("retrieving from github last SHA version")
+            append_log("retrieving from github latest SHA version")
             req_sha = urllib.request.Request(__ghlink_raw_sha__, headers={"User-Agent": "tn-sendemail-updater"})  
             with urllib.request.urlopen(req_sha, timeout=5) as r:
                 remote_sha = r.read().decode("utf-8")
                 
-            append_log("everything retrievied to perform sanity check")    
+            append_log("everything retrievied and ready to perform sanity check")    
             check_sha = self._verify_sha256(payload, remote_sha)
             if not check_sha:
                 self.updatepath_process_output(True, "[ERROR]: SHA256 mismatch, aborting", 1)
@@ -1139,7 +1141,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     if args.check_update:
-        CheckForUpdate() 
+        check_update_output = CheckForUpdate().parse_as_output()
+        print(f"{check_update_output}")
         sys.exit(0)      
     
     if args.notify_update:
@@ -1147,9 +1150,15 @@ if __name__ == "__main__":
         sys.exit(0)   
         
     if args.self_update:
-        args.debug_enabled = True
-        log_file, log_file_count = create_log_file()
-        PerformUpdate().apply_update()               
+        _, precheck = CheckForUpdate().parse_as_resp()
+        if precheck:
+            args.debug_enabled = True
+            log_file, log_file_count = create_log_file()
+            PerformUpdate().apply_update()               
+        else:
+            check_update_output = CheckForUpdate().parse_as_output()
+            print(f"{check_update_output}")
+            sys.exit(0)              
     
     if args.test_mode:
         print("Activating test mode") 
