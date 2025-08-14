@@ -17,7 +17,67 @@ from google.oauth2.credentials import Credentials
 __version__ = "1.35"
 __ghlink__ = "https://github.com/oxyde1989/standalone-tn-send-email"
 __ghlink_raw__ = "https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/main/multireport_sendemail.py"
+__script_path__ = os.path.abspath(__file__)
+__script_name__ = os.path.basename(__script_path__)
 
+class CheckForUpdate: 
+    """
+        this class will handle the update availability, usefull for other script that use the sendemail, or for people that wanna build theyr own update logic. Also can be used internally
+    """      
+    def __init__(self):  
+        try:
+            puo_update_available, puo_new_version = check_for_update(__version__)
+            puo_response = json.dumps({"version": __version__,"latest_version": puo_new_version, "need_update": puo_update_available}, ensure_ascii=False)
+            print(f"{puo_response}") 
+            self.puo_update_available = puo_update_available
+            self.puo_new_version = puo_new_version
+        except Exception as e:
+            print(f"[ERROR]: {e}")
+            sys.exit(1)
+            
+    def parse_as_resp(self):
+        return self.puo_new_version, self.puo_update_available    
+
+class PerformUpdate:
+    def __init__(self):
+        self.url = __ghlink_raw__
+        self.staging_dir = os.path.join(os.getcwd(), "sendemail_update")
+        self.basename = __script_name__
+
+    def _create_update_dir(self):
+        if os.path.islink(self.staging_dir):
+            print(f"[ERROR]: {self.staging_dir} is a symlink. Operation not allowed for security reason")
+            sys.exit(1)
+        if not os.path.exists(self.staging_dir):
+            os.makedirs(self.staging_dir, exist_ok=True)
+        elif not os.path.isdir(self.staging_dir):
+            print(f"[ERROR] {self.staging_dir} exists and is not a directory?")
+            sys.exit(1)
+        return self.staging_dir
+
+    def _generate_timestamp(self):
+        return f"{time.strftime('%Y%m%d_%H%M%S', time.localtime())}_{self.basename}"
+
+    def perform_update(self):
+        new_version, update_available = CheckForUpdate().parse_as_resp()
+        if not update_available:
+            return None
+        d = self._create_update_dir()
+        out_path = os.path.join(d, self._generate_timestamp())
+        req = urllib.request.Request(self.url, headers={"User-Agent": "tn-sendemail-updater"})
+        with urllib.request.urlopen(req, timeout=5) as r:
+            payload = r.read()
+        with open(out_path, "wb") as f:
+            f.write(payload); f.flush(); os.fsync(f.fileno())
+        dir_fd = os.open(d, os.O_DIRECTORY)
+        try:
+            os.fsync(dir_fd)
+        finally:
+            os.close(dir_fd)
+        out_response = json.dumps({"downloaded_path": out_path, "new_version": new_version, "staging_dir": d}, ensure_ascii=False)  
+        print(f"{out_response}")  
+        return out_response
+   
 class NotifyForUpdate:
     """
         this class rely on the built-in sendemail to deliver a notify when an update is available. Considering that update are not so frequent, use the --notify_update on a weekly cronjob to avoid unecessary pings
@@ -46,11 +106,11 @@ td.header-gradient {{
             <table role="presentation" width="100%">
               <tr>
                 <td align="left" style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#eaf2ff;letter-spacing:.3px;">
-                  V {__version__} --> V {f_new_version}
+                  V {__version__}
                 </td>
                 <td align="right">
                   <span style="display:inline-block;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.18);color:#fff;font-family:Arial,Helvetica,sans-serif;font-size:12px;">
-                    New Version Released
+                    New Version <b>{f_new_version}</b>
                   </span>
                 </td>
               </tr>
@@ -104,16 +164,10 @@ td.header-gradient {{
 """             
 
         try:
-            print(f"Current version: {__version__}")
-            f_update_available, f_new_version = check_for_update(__version__)
-            print(f"GitHub version: {f_new_version}")
-            if not f_update_available:
-                print("All good, no update needed. Keep enjoy!")
-                sys.exit(0)
-            else:
+            f_new_version, f_update_available = CheckForUpdate().parse_as_resp()
+            if f_update_available:
                 f_subject = f"🔥TN SendEmail {f_new_version} available"
                 f_text = get_update_message()
-                print(f"NEW VERSION {f_new_version} AVAILABLE ON GITHUB. Consider to upgrade!")
                 payload_dict = {"subject": f_subject, "html": f_text}
                 payload = json.dumps(payload_dict)    
                 midclt_path = "/usr/bin/midclt"
@@ -123,25 +177,9 @@ td.header-gradient {{
                         print("Failed to load midclt")
                         sys.exit(1)
                 subprocess.run([midclt_path, "call", "mail.send", payload], check=True)
-                sys.exit(0) 
         except Exception as e:
-            print(f"[ERROR] email fail: {e}")            
-            sys.exit(1)  
-            
-class CheckForUpdate: 
-    """
-        this class will handle the update availability, usefull for other script that use the sendemail
-    """      
-    def __init__(self):  
-        try:
-            puo_update_available, puo_new_version = check_for_update(__version__)
-            puo_response = json.dumps({"version": __version__,"latest_version": puo_new_version, "need_update": puo_update_available}, ensure_ascii=False)
-            print(f"{puo_response}")
-            sys.exit(0)            
-        except Exception as e:
-            print(f"[ERROR]: {e}")
-            sys.exit(1)
-                                           
+            print(f"[ERROR]: {e}")            
+            sys.exit(1)                                             
 
 def validate_arguments(args):
     """
@@ -246,7 +284,7 @@ def append_log(content):
 def process_output(error, detail="", exit_code=None):
     """
         Centralized output response 
-        - error bool detail string exit_code 0 (ok) 1 (ko) or None (ignore)
+        - version str error bool detail string exit_code 0 (ok) 1 (ko) or None (ignore)
     """                   
     response = json.dumps({"version": __version__,"error": error, "detail": detail, "logfile": log_file, "total_attach": attachment_count, "ok_attach": attachment_count_valid}, ensure_ascii=False)
     append_log(f"{detail}") 
@@ -925,16 +963,23 @@ if __name__ == "__main__":
     parser.add_argument("--override_fromname", help="OPTIONAL override sender name from TN config")
     parser.add_argument("--override_fromemail", help="OPTIONAL override sender email from TN config")
     parser.add_argument("--test_mode", help="OPTIONAL use to let the script override all info and quickly send a sample email. If the script is in the same multi report folder, the fallback will be used anyway", action='store_true')  
-    parser.add_argument("--notify_update", help="OPTIONAL use to let the script to only check the update availability, and notify. Use in a cronjob with a weekly check", action='store_true')         
-    parser.add_argument("--check_update", help="OPTIONAL use to let the script to only check the update availability, and get a proper output", action='store_true')       
+    parser.add_argument("--notify_update", help="OPTIONAL use to let the script to only check update availability, and notify the context user. Use in a cronjob with a weekly check", action='store_true')   
+    parser.add_argument("--check_update", help="OPTIONAL use to let the script to only check update availability", action='store_true')              
+    parser.add_argument("--self_update", help="OPTIONAL use to let the script to check update availability and perform an update when needed", action='store_true')       
     
     args = parser.parse_args()
     
+    if args.check_update:
+        CheckForUpdate() 
+        sys.exit(0)      
+    
     if args.notify_update:
         NotifyForUpdate()
+        sys.exit(0)   
         
-    if args.check_update:
-        CheckForUpdate()        
+    if args.self_update:
+        PerformUpdate().perform_update()    
+        sys.exit(0)           
     
     if args.test_mode:
         print("Activating test mode") 
@@ -987,13 +1032,7 @@ if __name__ == "__main__":
         if attachment_count_valid is None:
             attachment_count_valid = 0
         
-        final_output_message = "<< Email Sent >> "
-        
-        append_log("Check for update")
-        c_update_available, c_new_version = check_for_update(__version__)
-        if c_update_available:
-            final_output_message = final_output_message + f"\n>> NEW VERSION {c_new_version} AVAILABLE >>"    
-            print(f">> NEW VERSION {c_new_version} AVAILABLE ON GITHUB. Consider to upgrade! >>")    
+        final_output_message = "<< Email Sent >> "  
         
         if attachment_count_valid < attachment_count:
             final_output_message = final_output_message + "\n>> Soft warning: something wrong with 1 or more attachments >>"
