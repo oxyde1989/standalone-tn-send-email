@@ -277,6 +277,85 @@ td.header-gradient {{
 </table>
         
 """            
+, "notify_update_fail": """
+<style>
+td.header-gradient {{
+    background:linear-gradient(135deg,#3b82f6,#6366f1);
+}}
+</style>        
+<!-- Preheader -->
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">
+  SendEmail update failed
+</div>
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background:#f5f7fb;margin:0;padding:0;">
+  <tr>
+    <td align="center" style="padding:24px 12px;">
+      <!-- Container -->
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width:600px;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e6e9f2;">
+        <!-- Header / Brand -->
+        <tr>
+          <td align="center" class="header-gradient" style="padding:20px 24px;">
+            <table role="presentation" width="100%">
+              <tr>
+                <td align="left" style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#eaf2ff;letter-spacing:.3px;">
+                  V {__version__}
+                </td>
+                <td align="right">
+                  <span style="display:inline-block;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.18);color:#fff;font-family:Arial,Helvetica,sans-serif;font-size:12px;">
+                    {new_version} install fail
+                  </span>
+                </td>
+              </tr>
+            </table>
+            <h1 style="margin:14px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:26px;line-height:1.25;color:#ffffff;">
+              🛠 SendEmail update has failed 🛠
+            </h1>
+          </td>
+        </tr>
+
+        <!-- Body -->
+        <tr>
+          <td style="padding:28px 24px 8px 24px;">
+            <p style="margin:0 0 12px 0;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.65;color:#222;">
+              This notification has been sent because SendEmail fail to apply an update.
+            </p>
+            <p style="margin:0 0 14px 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.7;color:#444;">
+              Please try again or apply the update manually. Also consider to check into the <i>sendemail_log</i> folder the reason of the error
+              <br>
+
+            </p>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="padding:14px 24px 24px 24px;">
+            <hr style="border:none;border-top:1px solid #eef1f6;margin:0 0 12px 0;">
+            <table role="presentation" width="100%">
+              <tr>
+                <td align="left" style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#6b7280;">
+                  Provided with &lt;3 by <span style="color:#111827;font-weight:600;">Oxyde</span>
+                </td>
+                <td align="right" style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#9ca3af;">
+                  <a href="{__ghlink__}/issues" style="color:#6b7280;text-decoration:none;">⚙️ Need support?</a>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+      </table>
+      <!-- /Container -->
+
+      <!-- Legal tiny -->
+      <p style="max-width:600px;margin:12px auto 0 auto;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.6;color:#9aa0a6;">
+        ⭐ If you like my work, consider giving it a star on <a href="{__ghlink__}" style="color:#3b82f6;text-decoration:none;">GitHub</a>.
+      </p>
+    </td>
+  </tr>
+</table>
+        
+"""       
 }
 
 def render_template(name, **ctx):
@@ -331,6 +410,8 @@ class PerformUpdate:
         
     def get_postupdate_message(self):
         return render_template("notify_update_done", __version__=__version__, new_version=self.new_version,__ghlink__=__ghlink__)  
+    def get_postupdate_fail_message(self):
+        return render_template("notify_update_fail", __version__=__version__, new_version=self.new_version,__ghlink__=__ghlink__)      
 
     def _create_update_dir(self):
         append_log("Preparing sendemail_update dir") 
@@ -401,7 +482,7 @@ class PerformUpdate:
                 self.updatepath_process_output(True, "[ERROR]: SHA256 mismatch, aborting", 1)
             append_log("sanity check passed")    
                 
-            append_log("swapping old and new file")    
+            append_log("swapping old and new script file.")    
             backup_name = self._generate_timestamp()
             backup_path = os.path.join(d, backup_name)         
             shutil.copy2(__script_path__, backup_path)    
@@ -412,11 +493,24 @@ class PerformUpdate:
                 os.fsync(dst_fd)
             finally:
                 os.close(dst_fd)
+            append_log("swap terminated, need to check again because this part can fail silently")    
+            try:
+                with open(__script_path__, "rb") as f:
+                    _installed_payload = f.read()
+            except Exception as e:
+                self.updatepath_process_output(True, f"[ERROR]: unable to read installed file for sha check: {e}", 1)
+            _check_post = self._verify_sha256(_installed_payload, remote_sha)
+            if not _check_post:
+                self.updatepath_process_output(True, "[ERROR]: post-swap SHA256 mismatch; concurrent update or name collision suspected", 1)
+            append_log("post-swap sha256 OK")             
+            
             if args.notify_self_update:
                 self.post_update_send_notify()
                 append_log("Notify send") 
             self.updatepath_process_output(False, f"New version {new_version} installed", 0)        
         except Exception as e:
+            if args.notify_self_update:
+                self.post_update_fail_send_notify()
             self.updatepath_process_output(True, f"[ERROR]: {e}", 1)       
             
     def post_update_send_notify(self):    
@@ -426,7 +520,16 @@ class PerformUpdate:
         try:
             quick_tn_builtin_sendemail(f_subject, f_text)   
         except Exception as e:
-            append_log("notify email send failed, sorry")      
+            append_log("notify email send failed, sorry")     
+             
+    def post_update_fail_send_notify(self):    
+        append_log("preparing email to notify the fail update") 
+        f_subject = f"🔥TN SendEmail {self.new_version} install FAIL"
+        f_text = self.get_postupdate_fail_message()
+        try:
+            quick_tn_builtin_sendemail(f_subject, f_text)   
+        except Exception as e:
+            append_log("notify email send failed, sorry")             
    
 class NotifyForUpdate:
     """
