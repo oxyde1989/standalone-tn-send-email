@@ -10,7 +10,6 @@ from email import message_from_string
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
-
 ##### V 1.50
 ##### Stand alone script to send email via Truenas
 __version__ = "1.50"
