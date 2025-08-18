@@ -1,1 +1,329 @@
-<h1>W.I.P.</h1>
+<!doctype html>
+<html lang="it" data-bs-theme="auto">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FAQ • Oxyde SendEmail </title>
+    <meta name="description" content="Guide and reference for the correct use of the SendEmail" />
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>📬</text></svg>">
+
+    <style>
+      :root { --hero-gradient: linear-gradient(135deg, #0d6efd 0%, #6f42c1 100%); }
+      .hero {
+        background: var(--hero-gradient);
+        color: #fff;
+        border-radius: 1.25rem;
+        padding: 3rem 1.5rem;
+      }
+      .hero .btn { box-shadow: 0 0.5rem 1rem rgba(0,0,0,.15); }
+      .section-spacer { padding-top: 4rem; margin-top: -4rem; }
+      .code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        background: var(--bs-tertiary-bg);
+        border-radius: .75rem;
+        padding: 1rem;
+      }
+      footer { border-top: 1px solid var(--bs-border-color); }
+    </style>
+  </head>
+
+  <body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg bg-body-tertiary sticky-top border-bottom">
+      <div class="container">
+        <span  class="navbar-brand d-flex align-items-center gap-2" href="#">
+          <span class="fs-5">📬</span>
+          <strong>Stand-alone SendEmail V1.50 BETA</strong>
+        </span >
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav" aria-controls="nav" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="nav">
+          <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+            <li class="nav-item"><a class="nav-link" href="https://github.com/oxyde1989/Stand-alone-tn-send-email">Go to the Project</a></li>
+            <li class="nav-item" style="display:none"><a class="nav-link" href="https://github.com/oxyde1989?tab=repositories">Other personal works</a></li>
+          </ul>
+          <div class="ms-lg-3 d-flex gap-2">
+            <div class="btn-group" role="group" aria-label="Theme">
+              <button class="btn btn-outline-secondary btn-sm" data-theme-value="light" title="light Theme">☀️</button>
+              <button class="btn btn-outline-secondary btn-sm" data-theme-value="dark" title="dark Theme">🌙</button>
+              <button class="btn btn-outline-secondary btn-sm" data-theme-value="auto" title="auto Theme">🖥️</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <header class="container my-4" id="top" >
+      <div class="hero text-center">
+        <h1 class="display-5 fw-bold mb-3">Official Guidelines (w.i.p.)</h1>
+        <p class="lead mb-4">This standalone script provides the ability to send emails and attachments using the TrueNAS native mail.config, in the simplest possible way for the end user</p>
+      </div>
+    </header>
+
+    <!-- Contenuto -->
+    <main class="container my-5">
+      <div class="row g-4">
+        <div class="col-lg-8">
+          <!-- Accordion principale -->
+          <section id="introduction" class="section-spacer mb-4">
+            <h2 class="h3 mb-3">About the project</h2>
+            <div class="accordion" id="acc-intro">
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="h-intro-1">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c-intro-1" aria-expanded="false" aria-controls="c-intro-1">
+                    📌 What this script do
+                  </button>
+                </h2>
+                <div id="c-intro-1" class="accordion-collapse collapse" aria-labelledby="h-intro-1" data-bs-parent="#acc-intro">
+                  <div class="accordion-body">
+                    Starting from Truenas 24.10.10, the sendemail function is no longer available, removed for security reason.<br>
+                    This standalone script provides the ability to send emails and attachments using the TrueNAS native <code>mail.config</code>, in the simplest possible way.<br>
+                    Originally designed to be a wrapper for <a href="https://github.com/JoeSchmuck/Multi-Report/tree/main">Joe's Multi Report</a>, it also can be used for simplify sending email overall in many other scenarios.
+                  </div>
+                </div>
+              </div>
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="h-intro-2">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c-intro-2" aria-expanded="false" aria-controls="c-intro-2">
+                    ⚙️ How it works
+                  </button>
+                </h2>
+                <div id="c-intro-2" class="accordion-collapse collapse" aria-labelledby="h-intro-2" data-bs-parent="#acc-intro">
+                  <div class="accordion-body">
+                        Actually, there are basically 2 different usage methods:
+                        <ul>
+                            <li>Passing <code>--subject</code>, <code>--to_address</code>, <code>--mail_body_html</code> (nor a file path and plain text), plus other optionally args.</li>
+                            <li>Passing only the full email base64 encoded (nor a file path and plain text) as <code>--mail_bulk</code>, trying to emulating the old sendemail function, and all the info will be retrieved there.</li>
+                        </ul>                           
+                  </div>
+                </div>
+              </div>
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="h-intro-3">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c-intro-3" aria-expanded="false" aria-controls="c-intro-3">
+                    🔐 Security Concern
+                  </button>
+                </h2>
+                <div id="c-intro-3" class="accordion-collapse collapse" aria-labelledby="h-intro-3" data-bs-parent="#acc-intro">
+                  <div class="accordion-body">
+                        To retrieve TN mail configuration data, at least <code>READONLY_ADMIN</code> or <code>SHARING_ADMIN</code> roles are needed for the user that run the script.<br>
+                        <b>So is highly adviced to only use the script in a secured folder, not accessible to un-priviliged users, to avoid unexpected behaviour.</b><br>
+                        The script will advice you in those scenarios, so pay attention if some warning are raised on first usage and fix your dataset permission accordingly. <br>
+                        There are other check that are performed to improve security (attachment black list, avoiding symlink, CRLF injection, ...), any suggestion is welcome and i will do my best to keep things safest and flexible for all.                         
+                  </div>
+                </div>
+              </div>              
+            </div>
+          </section>
+
+          <section id="advanced" class="section-spacer mb-4">
+            <h2 class="h3 mb-3">Advanced usage methods</h2>
+            <div class="accordion" id="acc-inst">
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="h-inst-1">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c-inst-1" aria-expanded="false" aria-controls="c-inst-1">
+                    ✉️ Sender data override
+                  </button>
+                </h2>
+                <div id="c-inst-1" class="accordion-collapse collapse" aria-labelledby="h-inst-1" data-bs-parent="#acc-inst">
+                  <div class="accordion-body">
+                    Is possible to override the TN sender name - sender email to fit more scenarios in those ways:
+                    <ul>
+                        <li>
+                            using directly <code>--override_fromemail</code> or <code>--override_fromname</code> args calling the script
+                        </li>
+                        <li>
+                            for multi report users, editing own standard <code>mr_config file</code>, value involved are <code>FromName</code> and <code>From</code>, as a fallback
+                        </li>
+                    </ul>
+                    📌 The priority is: <pre class="code mb-0"> override data > fallback data > default </pre>
+                    <i>If sendemail and <code>mr_config file</code> are still in the same folder, fallback values will be still retrieved although you will call the script outsite the multi_report</i><br>
+                    Also to mention, only <code>override_fromname</code> and <code>FromName</code> can be passed, without a email override, and they will be applied to the default email.<br><br>
+                    <strong>Customize the sender name has no particoular restrictions, is pretty safe, instead you have to pay attention on customizing the sender (reject ratio depending on your provider):</strong>
+                    <ul>
+                        <li><strong>GMAIL:</strong> this provider will override your sender with the account email if it is not a validated alias, and the deliver shouldn't fail; you can safely send email with a sender plus address (example, your account is myemail@gmail.com and you use myemail+multireport@gmail.com as sender) </li>
+                        <li><strong>OUTLOOK:</strong> every sender that is not a valid alias of the account will be rejected </li>
+                        <li><strong>SMTP:</strong> every provider has own policy, but the most reject sender that is not a validated account/alias; also to mention, despite the email is send, using a sender with a different domain can be checked as spoofing with the direct conseguence that the email is delivered but go into the SPAM folder </li>                    
+                    </ul>
+                  </div>
+                </div>
+              </div>
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="h-inst-2">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c-inst-2" aria-expanded="false" aria-controls="c-inst-2">
+                    🐞 Debugging
+                  </button>
+                </h2>
+                <div id="c-inst-2" class="accordion-collapse collapse" aria-labelledby="h-inst-2" data-bs-parent="#acc-inst">
+                  <div class="accordion-body">
+                    In case of need, passing <code>--debug_enabled</code> as arg to the script will activate the debug mode: a log file will be generated and placed into </code>sendemail_log</code> folder. <br>
+                    Folder itself and files can be safely deleted manually anytime the script is not running.<br>
+                    Calling the script from crontab, with the debug enabled, can lead to problem if the root user is the one used and, before invoke the script, the correct working directory is not selected with a <code>cd</code> command.<br>
+                    Logs file not obviously expose credentials or access token, but dont forget to cleanup after a debug session anyway to not expose more-or-less sensitive data in your usage context arising from exceptions.
+                  </div>
+                </div>
+              </div>
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="h-inst-3">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c-inst-3" aria-expanded="false" aria-controls="c-inst-3">
+                    🚧 Test mode
+                  </button>
+                </h2>
+                <div id="c-inst-3" class="accordion-collapse collapse" aria-labelledby="h-inst-3" data-bs-parent="#acc-inst">
+                  <div class="accordion-body">
+                        If you wanna just test the basic function fast and quickly, use the <code>--test_mode</code> and the script will compose and send a test email to the actual user email address.<br>
+                        In test mode, every arg will be overwritten, <b>also the debug will be enabled automatically</b>. 
+                        If the script is in the same Multi Report folder, the fallback from the multi_report_config.txt <code>FromName</code> and <code>From</code> will be used, so you can ensure that the fallbacks are working properly.
+                        <img class="img-fluid" src="https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/main/assets/test_email.png">
+                  </div>
+                </div>
+              </div>              
+            </div>
+          </section>
+
+          <section id="updates" class="section-spacer mb-5">
+            <h2 class="h3 mb-3">Managing updates</h2>
+            <div class="accordion" id="acc-faq">
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="h-faq-0">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c-faq-0" aria-expanded="false" aria-controls="c-faq-0">
+                    🔥 Update Strategies
+                  </button>
+                </h2>
+                <div id="c-faq-0" class="accordion-collapse collapse" aria-labelledby="h-faq-0" data-bs-parent="#acc-faq">
+                  <div class="accordion-body">
+                    From version 1.50, the sendemail has been equipped with several different tools, that will help nor end users and other scripts (that rely on sendemail) to keep everything updated.<br>
+                    Those tools try to ensure to keep things easiest on different scenarios, providing notifications, outputs (that can be grabbed), also an internal auto-update mechanism.
+                  </div>
+                </div>
+              </div>                
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="h-faq-1">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c-faq-1" aria-expanded="false" aria-controls="c-faq-1">
+                    ⮞ Update Notification
+                  </button>
+                </h2>
+                <div id="c-faq-1" class="accordion-collapse collapse" aria-labelledby="h-faq-1" data-bs-parent="#acc-faq">
+                  <div class="accordion-body">
+                    With <code>--notify_update</code> the script use the Truenas builtin <code>mail.send</code> command to notify that a new version has been released.<br>
+                    This arg is intended to be used alone in a Truenas cronjob, with a "slow" schedule (like weekly, due the fact has no queue management) to help keep the script manually updated.<br>
+
+                  </div>
+                </div>
+              </div>
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="h-faq-2">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c-faq-2" aria-expanded="false" aria-controls="c-faq-2">
+                    ⮞ Update Checking
+                  </button>
+                </h2>
+                <div id="c-faq-2" class="accordion-collapse collapse" aria-labelledby="h-faq-2" data-bs-parent="#acc-faq">
+                  <div class="accordion-body">
+                    With <code>--check_update</code> the script will return a tiny json object that can be used by other scripts to perform/notify or not an available update.<br>
+                    This arg is intended to be used alone.
+                    <pre class="code mb-0">{"version": "1.**", "latest_version": "1.**", "need_update": false} </pre>
+                  </div>
+                </div>
+              </div>
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="h-faq-3">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c-faq-3" aria-expanded="false" aria-controls="c-faq-3">
+                    ⮞ Update Self
+                  </button>
+                </h2>
+                <div id="c-faq-3" class="accordion-collapse collapse" aria-labelledby="h-faq-3" data-bs-parent="#acc-faq">
+                  <div class="accordion-body">
+                    With <code>--self_update</code> the script will perform an auto update, if a new stable version is available on Github.<br>
+                    This arg can be used with <code>--notify_self_update</code>, and the script will generate a notification using the Truenas builtin <code>mail.send</code> command, nor if is a success or not.<br>
+                    Also to mention, everytime the <code>--self_update</code> is used, <strong>the debug mode will be enabled.</strong>
+                  </div>
+                </div>
+              </div>              
+            </div>
+          </section>
+        </div>
+
+        <!-- Sidebar -->
+        <aside class="col-lg-4">
+          <div class="position-sticky" style="top: 5.5rem;">
+            <div class="card mb-3">
+              <div class="card-body">
+                <h3 class="h6 text-uppercase text-muted mb-3">Index</h3>
+                <ol class="list-unstyled small">
+                  <li><a href="#introduction" class="link-body-emphasis">About the project</a></li>
+                  <li><a href="#advanced" class="link-body-emphasis">Advanced usage methods</a></li>
+                  <li><a href="#updates" class="link-body-emphasis">Managing updates</a></li>
+                </ol>
+              </div>
+            </div>
+            <div class="card" style="display: none;">
+              <div class="card-body">
+                <h3 class="h6 text-uppercase text-muted mb-3">Resources</h3>
+                <ul class="small mb-0">
+                  <li>*</li>
+                  <li>*</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </main>
+
+    <footer class="container py-4">
+      <div class="d-flex flex-column flex-md-row align-items-center gap-2 justify-content-between">
+        <small class="text-muted">© <span id="year"></span> <b>Truenas Stand-alone SendEmail</b> - provided with &lt;3 by Oxyde </small>
+        <a href="#" id="scrollTopBtn" class="btn btn-outline-secondary btn-sm">Back to top ↑</a>
+      </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+
+    <script>
+      // Aggiorna l'anno nel footer
+      document.getElementById('year').textContent = new Date().getFullYear();
+
+      // Gestione Theme (light/dark/auto) usando data-bs-theme sul <html>
+      (function() {
+        const root = document.documentElement;
+        const buttons = document.querySelectorAll('[data-theme-value]');
+        const pref = localStorage.getItem('theme') || 'auto';
+        setTheme(pref);
+        buttons.forEach(btn => btn.addEventListener('click', () => setTheme(btn.getAttribute('data-theme-value'))));
+        function setTheme(val){
+          localStorage.setItem('theme', val);
+          if (val === 'auto') {
+            root.setAttribute('data-bs-theme', window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+          } else {
+            root.setAttribute('data-bs-theme', val);
+          }
+        }
+        // aggiorna in tempo reale se l'utente cambia preferenza di sisTheme
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+          if ((localStorage.getItem('theme') || 'auto') === 'auto') setTheme('auto');
+        });
+      })();
+
+      // Scroll dolce per gli anchor link
+      document.querySelectorAll('a[href^="#"]').forEach(a => {
+        a.addEventListener('click', e => {
+          const target = document.querySelector(a.getAttribute('href'));
+          if (target) {
+            e.preventDefault();
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        });
+      });
+
+        document.getElementById('scrollTopBtn').addEventListener('click', e => {
+        e.preventDefault();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        });     
+
+    </script>
+  </body>
+</html>
