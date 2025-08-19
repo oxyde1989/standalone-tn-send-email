@@ -35,14 +35,14 @@
       <div class="container">
         <span  class="navbar-brand d-flex align-items-center gap-2" href="#">
           <span class="fs-5">📬</span>
-          <strong>Stand-alone SendEmail V1.50 BETA</strong>
+          <strong>Standalone SendEmail V1.50 BETA</strong>
         </span >
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav" aria-controls="nav" aria-expanded="false" aria-label="Toggle navigation">
           <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="nav">
           <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-            <li class="nav-item"><a class="nav-link" href="https://github.com/oxyde1989/Stand-alone-tn-send-email">Go to the Project</a></li>
+            <li class="nav-item"><a class="nav-link" href="https://github.com/oxyde1989/standalone-tn-send-email">Go to the Project</a></li>
             <li class="nav-item" style="display:none"><a class="nav-link" href="https://github.com/oxyde1989?tab=repositories">Other personal works</a></li>
           </ul>
           <div class="ms-lg-3 d-flex gap-2">
@@ -78,9 +78,9 @@
                 </h2>
                 <div id="c-intro-1" class="accordion-collapse collapse" aria-labelledby="h-intro-1" data-bs-parent="#acc-intro">
                   <div class="accordion-body">
-                    Starting from Truenas 24.10.10, the sendemail function is no longer available, removed for security reason.<br>
+                    Starting from TrueNAS 24.10.10, the sendemail function is no longer available, removed for security reason.<br>
                     This standalone script provides the ability to send emails and attachments using the TrueNAS native <code>mail.config</code>, in the simplest possible way.<br>
-                    Originally designed to be a wrapper for <a href="https://github.com/JoeSchmuck/Multi-Report/tree/main">Joe's Multi Report</a>, it also can be used for simplify sending email overall in many other scenarios.
+                    Originally designed to be a wrapper for <a href="https://github.com/JoeSchmuck/Multi-Report/tree/main">Joe's Multi Report</a>, it also can be used to simplify sending email overall in many other scenarios.
                   </div>
                 </div>
               </div>
@@ -94,8 +94,8 @@
                   <div class="accordion-body">
                         Actually, there are basically 2 different usage methods:
                         <ul>
-                            <li>Passing <code>--subject</code>, <code>--to_address</code>, <code>--mail_body_html</code> (nor a file path and plain text), plus other optionally args.</li>
-                            <li>Passing only the full email base64 encoded (nor a file path and plain text) as <code>--mail_bulk</code>, trying to emulating the old sendemail function, and all the info will be retrieved there.</li>
+                            <li>Passing <code>--subject</code>, <code>--to_address</code>, <code>--mail_body_html</code> (either a file path and plain text), plus other optionally args.</li>
+                            <li>Passing only the full email base64 encoded (either a file path and plain text) as <code>--mail_bulk</code>, trying to emulating the old sendemail function, and all the info will be retrieved there.</li>
                         </ul>                           
                   </div>
                 </div>
@@ -108,10 +108,10 @@
                 </h2>
                 <div id="c-intro-3" class="accordion-collapse collapse" aria-labelledby="h-intro-3" data-bs-parent="#acc-intro">
                   <div class="accordion-body">
-                        To retrieve TN mail configuration data, at least <code>READONLY_ADMIN</code> or <code>SHARING_ADMIN</code> roles are needed for the user that run the script.<br>
-                        <b>So is highly adviced to only use the script in a secured folder, not accessible to un-priviliged users, to avoid unexpected behaviour.</b><br>
-                        The script will advice you in those scenarios, so pay attention if some warning are raised on first usage and fix your dataset permission accordingly. <br>
-                        There are other check that are performed to improve security (attachment black list, avoiding symlink, CRLF injection, ...), any suggestion is welcome and i will do my best to keep things safest and flexible for all.                         
+                        To retrieve TN mail configuration data, at least <code>READONLY_ADMIN</code> or <code>SHARING_ADMIN</code> roles are needed for the user running the script.<br>
+                        <b>So is highly advised to only use the script in a secured folder, not accessible to un-priviliged users, to avoid unexpected behaviour.</b><br>
+                        The script will advise you in those scenarios, so pay attention if some warning are raised on first usage and fix your dataset permission accordingly. <br>
+                        There are other checks performed to improve security (attachment black list, avoiding symlink, CRLF injection, ...), any suggestiona are welcome and i will do my best to keep things as safe and flexible for everyone.                         
                   </div>
                 </div>
               </div>              
@@ -194,8 +194,8 @@
                 </h2>
                 <div id="c-faq-0" class="accordion-collapse collapse" aria-labelledby="h-faq-0" data-bs-parent="#acc-faq">
                   <div class="accordion-body">
-                    From version 1.50, the sendemail has been equipped with several different tools, that will help nor end users and other scripts (that rely on sendemail) to keep everything updated.<br>
-                    Those tools try to ensure to keep things easiest on different scenarios, providing notifications, outputs (that can be grabbed), also an internal auto-update mechanism.
+                    From version 1.50, the sendemail has been equipped with several tools, that will help both end users and other scripts (that rely on sendemail) keep everything updated.<br>
+                    These tools aim to ensure to keep things easy in different scenarios, providing notifications, outputs (that can be parsed), and an internal auto-update mechanism.
                   </div>
                 </div>
               </div>                
@@ -207,8 +207,8 @@
                 </h2>
                 <div id="c-faq-1" class="accordion-collapse collapse" aria-labelledby="h-faq-1" data-bs-parent="#acc-faq">
                   <div class="accordion-body">
-                    With <code>--notify_update</code> the script use the Truenas builtin <code>mail.send</code> command to notify that a new version has been released.<br>
-                    This arg is intended to be used alone in a Truenas cronjob, with a "slow" schedule (like weekly, due the fact has no queue management) to help keep the script manually updated.<br>
+                    With <code>--notify_update</code> the script uses the TrueNAS builtin <code>mail.send</code> command to notify that a new version has been released.<br>
+                    This arg is intended to be used alone in a TrueNAS cronjob, with a "slow" schedule (e.g. weekly, since it has no queue management) to help keep the script manually updated.<br>
 
                   </div>
                 </div>
@@ -221,7 +221,7 @@
                 </h2>
                 <div id="c-faq-2" class="accordion-collapse collapse" aria-labelledby="h-faq-2" data-bs-parent="#acc-faq">
                   <div class="accordion-body">
-                    With <code>--check_update</code> the script will return a tiny json object that can be used by other scripts to perform/notify or not an available update.<br>
+                    With <code>--check_update</code> the script returns a tiny json object that other scripts can use to decide whether to perform or notify about an available update.<br>
                     This arg is intended to be used alone.
                     <pre class="code mb-0">{"version": "1.**", "latest_version": "1.**", "need_update": false} </pre>
                   </div>
@@ -235,8 +235,8 @@
                 </h2>
                 <div id="c-faq-3" class="accordion-collapse collapse" aria-labelledby="h-faq-3" data-bs-parent="#acc-faq">
                   <div class="accordion-body">
-                    With <code>--self_update</code> the script will perform an auto update, if a new stable version is available on Github.<br>
-                    This arg can be used with <code>--notify_self_update</code>, and the script will generate a notification using the Truenas builtin <code>mail.send</code> command, nor if is a success or not.<br>
+                    With <code>--self_update</code> the script will perform an auto update, only if a new stable version is available on Github.<br>
+                    This arg can be used with <code>--notify_self_update</code>, and the script will generate a notification using the TrueNAS builtin <code>mail.send</code> command, whether it a success or fail.<br>
                     Also to mention, everytime the <code>--self_update</code> is used, <strong>the debug mode will be enabled.</strong>
                   </div>
                 </div>
@@ -407,7 +407,7 @@ python3 multireport_sendemail.py --self_update --notify_self_update</code></pre>
 
     <footer class="container py-4">
       <div class="d-flex flex-column flex-md-row align-items-center gap-2 justify-content-between">
-        <small class="text-muted">© <span id="year"></span> <b>Truenas Stand-alone SendEmail</b> - provided with &lt;3 by Oxyde </small>
+        <small class="text-muted">© <span id="year"></span> <b>TrueNAS Stand-alone SendEmail</b> - provided with &lt;3 by Oxyde </small>
         <a href="#" id="scrollTopBtn" class="btn btn-outline-secondary btn-sm">Back to top ↑</a>
       </div>
     </footer>
