@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
-import smtplib, json, argparse, os, stat, time, base64, subprocess, socket, uuid, requests, urllib.request, sys, re, hashlib, hmac, shutil, datetime
+import smtplib, json, argparse, os, stat, time, base64, subprocess, socket, uuid, requests, urllib.request, sys, re, hashlib, hmac, shutil
+from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
@@ -354,15 +355,21 @@ td.header-gradient {{
   </tr>
 </table>
         
-"""       
+"""    
+, "notify_update_available_text": "You are receiving this email because SendEmail detect that your version is out-of-date. \n\n{__version__} --> {f_new_version}"  
+, "notify_update_done": "This notification has been sent because SendEmail successfully applied an update. \n\nYou are now on vesion {new_version}"
+, "notify_update_fail": "This notification has been sent because SendEmail fail to apply the {new_version} update."
 }
 
 def render_template(name, **ctx):
     """
-        this function will help to format out the above email templates, to keep the code clean as possible
+        this function will help to format out the above email templates, to keep the code clean as possible. Now switch correctly from core and scale
     """     
     try:
-        return EMAIL_TEMPLATE[name].format(**ctx)
+        _name = name
+        if not os.path.exists("/usr/bin/midclt"):
+            _name = f"{name}_text" 
+        return EMAIL_TEMPLATE[_name].format(**ctx)
     except Exception as e:
         return f"[ERROR] rendering template '{name}': {e}"
     
@@ -372,6 +379,8 @@ def quick_tn_builtin_sendemail(tn_subject, tn_text):
     tn_midclt_path = "/usr/bin/midclt"
     if not os.path.exists(tn_midclt_path):
         tn_midclt_path = "/usr/local/bin/midclt"
+        tn_payload_dict = {"subject": tn_subject, "text": tn_text}
+        tn_payload = json.dumps(tn_payload_dict)
         if not os.path.exists(tn_midclt_path):
             raise FileNotFoundError("[ERROR]: Failed to load midclt")
     subprocess.run([tn_midclt_path, "call", "mail.send", tn_payload], check=True) 
@@ -433,7 +442,7 @@ class PerformUpdate:
 
     def _generate_timestamp(self):
         append_log("generating a temp timestamp") 
-        now = datetime.datetime.now()
+        now = datetime.now()
         return f"{now:%Y%m%d_%H%M%S}_{now.microsecond//1000:03d}_{os.getpid()}_{__script_name__}"        
     
     def _verify_sha256(self, _payload, _remote_sha):

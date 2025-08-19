@@ -80,7 +80,7 @@
                   <div class="accordion-body">
                     Starting from TrueNAS 24.10.10, the sendemail function is no longer available, removed for security reason.<br>
                     This standalone script provides the ability to send emails and attachments using the TrueNAS native <code>mail.config</code>, in the simplest possible way.<br>
-                    Originally designed to be a wrapper for <a href="https://github.com/JoeSchmuck/Multi-Report/tree/main">Joe's Multi Report</a>, it also can be used to simplify sending email overall in many other scenarios.
+                    Originally designed to be a wrapper for <a href="https://github.com/JoeSchmuck/Multi-Report/tree/main" target="blank">Joe's Multi Report</a>, it also can be used to simplify sending email overall in many other scenarios.
                   </div>
                 </div>
               </div>
@@ -139,7 +139,7 @@
                         </li>
                     </ul>
                     📌 The priority is: <pre class="code mb-0"> override data > fallback data > default </pre>
-                    <i>If sendemail and <code>mr_config file</code> are still in the same folder, fallback values will be still retrieved although you will call the script outsite the multi_report</i><br>
+                    <i>If sendemail and <code>mr_config file</code> are in the same folder, fallback values will be still retrieved although you will call the script outsite the multi_report</i><br>
                     Also to mention, only <code>override_fromname</code> and <code>FromName</code> can be passed, without a email override, and they will be applied to the default email.<br><br>
                     <strong>Customize the sender name has no particoular restrictions, is pretty safe, instead you have to pay attention on customizing the sender (reject ratio depending on your provider):</strong>
                     <ul>
@@ -161,7 +161,7 @@
                     In case of need, passing <code>--debug_enabled</code> as arg to the script will activate the debug mode: a log file will be generated and placed into </code>sendemail_log</code> folder. <br>
                     Folder itself and files can be safely deleted manually anytime the script is not running.<br>
                     Calling the script from crontab, with the debug enabled, can lead to problem if the root user is the one used and, before invoke the script, the correct working directory is not selected with a <code>cd</code> command.<br>
-                    Logs file not obviously expose credentials or access token, but dont forget to cleanup after a debug session anyway to not expose more-or-less sensitive data in your usage context arising from exceptions.
+                    Log files not obviously expose credentials or access token, but don't forget to cleanup after a debug session anyway to not expose more-or-less sensitive data in your usage context arising from exceptions.
                   </div>
                 </div>
               </div>
