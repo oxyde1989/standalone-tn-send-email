@@ -58,7 +58,7 @@
 
     <header class="container my-4" id="top" >
       <div class="hero text-center">
-        <h1 class="display-5 fw-bold mb-3">SendEmail Official Guidelines (w.i.p.)</h1>
+        <h1 class="display-5 fw-bold mb-3">SendEmail Official Guidelines</h1>
         <p class="lead mb-4" style="display: none">This standalone script provides the ability to send emails and attachments using the TrueNAS native mail.config, in the simplest possible way for the end user</p>
       </div>
     </header>
@@ -243,6 +243,138 @@
               </div>              
             </div>
           </section>
+
+          <section id="usageexample" class="section-spacer mb-5">
+            <h2 class="h3 mb-3">Usage example</h2>
+            <div class="accordion" id="acc-usex">
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="h-usex-0">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c-usex-0" aria-expanded="false" aria-controls="c-usex-0">
+                    ⮞ TestMode: quick send testing
+                  </button>
+                </h2>
+                <div id="c-usex-0" class="accordion-collapse collapse" aria-labelledby="h-usex-0" data-bs-parent="#acc-usex">
+                  <div class="accordion-body">
+                      <pre class="code mb-0"><code>#!/bin/bash
+python3 multireport_sendemail.py --test_mode</code> </pre>
+                  </div>
+                </div>
+              </div>                
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="h-usex-1">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c-usex-1" aria-expanded="false" aria-controls="c-usex-1">
+                    ⮞ Send method 1 - filling basic args 
+                  </button>
+                </h2>
+                <div id="c-usex-1" class="accordion-collapse collapse" aria-labelledby="h-usex-1" data-bs-parent="#acc-usex">
+                  <div class="accordion-body">
+                      <pre class="code mb-0"><code>#!/bin/bash 
+subject='test' 
+recipient='myemail@gmail.com'
+
+# Email Body: can be an HTML file path or plain text/html
+html_file="&#60;h1&#62;Send Email Test&#60;/h1&#62;&#60;p&#62;Hello World!&#60;/p&#62;"
+
+# Attachments (optional): add file paths
+attachment=() 
+attachment+=("path/to/first/attachment")  # Replace with the actual path
+#attachment+=("path/to/second/attachment") # Add additional files as needed
+
+python3 multireport_sendemail.py \
+    --subject "$subject" \
+    --to_address "$recipient" \
+    --mail_body_html "$html_file" \
+    --attachment_files "${attachment[@]}"</code> </pre>
+                  </div>
+                </div>
+              </div>
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="h-usex-2">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c-usex-2" aria-expanded="false" aria-controls="c-usex-2">
+                    ⮞ Send method 2 - using bulk email
+                  </button>
+                </h2>
+                <div id="c-usex-2" class="accordion-collapse collapse" aria-labelledby="h-usex-2" data-bs-parent="#acc-usex">
+                  <div class="accordion-body">
+                      <pre class="code mb-0"><code>#!/bin/bash
+mail_bulk= '/path/to/base64encode/email'
+python3 multireport_sendemail.py --mail_bulk "$mail_bulk" </code></pre>
+                  </div>
+                </div>
+              </div>
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="h-usex-3">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c-usex-3" aria-expanded="false" aria-controls="c-usex-3">
+                    ⮞ Send method 1 - Using override
+                  </button>
+                </h2>
+                <div id="c-usex-3" class="accordion-collapse collapse" aria-labelledby="h-usex-3" data-bs-parent="#acc-usex">
+                  <div class="accordion-body">
+                      <pre class="code mb-0">#!/bin/bash
+subject='test' 
+recipient='myemail@gmail.com'
+html_file="&#60;h1&#62;Send Email Test&#60;/h1&#62;&#60;p&#62;Hello World!&#60;/p&#62;"
+
+python3 multireport_sendemail.py \
+    --subject "$subject" \
+    --to_address "$recipient" \
+    --mail_body_html "$html_file" \
+    --override_fromname "Pippo" \
+    --override_fromemail "myemail+pippo@gmail.com"</pre>
+                  </div>
+                </div>
+              </div>  
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="h-usex-4">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c-usex-4" aria-expanded="false" aria-controls="c-usex-4">
+                    ⮞ Send method 1 - activating debug
+                  </button>
+                </h2>
+                <div id="c-usex-4" class="accordion-collapse collapse" aria-labelledby="h-usex-4" data-bs-parent="#acc-usex">
+                  <div class="accordion-body">
+                      <pre class="code mb-0"><code>#!/bin/bash
+subject='test' 
+recipient='myemail@gmail.com'
+html_file="&#60;h1&#62;Send Email Test&#60;/h1&#62;&#60;p&#62;Hello World!&#60;/p&#62;"
+
+python3 multireport_sendemail.py \
+    --subject "$subject" \
+    --to_address "$recipient" \
+    --mail_body_html "$html_file" \
+    --debug_enabled</code></pre>
+                  </div>
+                </div>
+              </div>            
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="h-usex-5">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c-usex-5" aria-expanded="false" aria-controls="c-usex-5">
+                    ⮞ Update - get notification
+                  </button>
+                </h2>
+                <div id="c-usex-5" class="accordion-collapse collapse" aria-labelledby="h-usex-5" data-bs-parent="#acc-usex">
+                  <div class="accordion-body">
+                      <pre class="code mb-0"><code>#!/bin/bash
+python3 multireport_sendemail.py --notify_update</code></pre>
+                  </div>
+                </div>
+              </div>  
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="h-usex-6">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c-usex-6" aria-expanded="false" aria-controls="c-usex-6">
+                    ⮞ Update - self update with notification
+                  </button>
+                </h2>
+                <div id="c-usex-6" class="accordion-collapse collapse" aria-labelledby="h-usex-6" data-bs-parent="#acc-usex">
+                  <div class="accordion-body">
+                      <pre class="code mb-0"><code>#!/bin/bash
+python3 multireport_sendemail.py --self_update --notify_self_update</code></pre>
+                  </div>
+                </div>
+              </div>                              
+
+            </div>
+          </section>
+
         </div>
 
 
@@ -255,6 +387,7 @@
                   <li><a href="#introduction" class="link-body-emphasis">About the project</a></li>
                   <li><a href="#advanced" class="link-body-emphasis">Advanced usage methods</a></li>
                   <li><a href="#updates" class="link-body-emphasis">Managing updates</a></li>
+                  <li><a href="#usageexample" class="link-body-emphasis">Usage example</a></li>
                 </ol>
               </div>
             </div>
