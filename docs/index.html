@@ -58,16 +58,15 @@
 
     <header class="container my-4" id="top" >
       <div class="hero text-center">
-        <h1 class="display-5 fw-bold mb-3">Official Guidelines (w.i.p.)</h1>
-        <p class="lead mb-4">This standalone script provides the ability to send emails and attachments using the TrueNAS native mail.config, in the simplest possible way for the end user</p>
+        <h1 class="display-5 fw-bold mb-3">SendEmail Official Guidelines (w.i.p.)</h1>
+        <p class="lead mb-4" style="display: none">This standalone script provides the ability to send emails and attachments using the TrueNAS native mail.config, in the simplest possible way for the end user</p>
       </div>
     </header>
 
-    <!-- Contenuto -->
     <main class="container my-5">
       <div class="row g-4">
         <div class="col-lg-8">
-          <!-- Accordion principale -->
+
           <section id="introduction" class="section-spacer mb-4">
             <h2 class="h3 mb-3">About the project</h2>
             <div class="accordion" id="acc-intro">
@@ -246,7 +245,7 @@
           </section>
         </div>
 
-        <!-- Sidebar -->
+
         <aside class="col-lg-4">
           <div class="position-sticky" style="top: 5.5rem;">
             <div class="card mb-3">
@@ -280,14 +279,11 @@
       </div>
     </footer>
 
-    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 
     <script>
-      // Aggiorna l'anno nel footer
       document.getElementById('year').textContent = new Date().getFullYear();
 
-      // Gestione Theme (light/dark/auto) usando data-bs-theme sul <html>
       (function() {
         const root = document.documentElement;
         const buttons = document.querySelectorAll('[data-theme-value]');
@@ -302,27 +298,15 @@
             root.setAttribute('data-bs-theme', val);
           }
         }
-        // aggiorna in tempo reale se l'utente cambia preferenza di sisTheme
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
           if ((localStorage.getItem('theme') || 'auto') === 'auto') setTheme('auto');
         });
       })();
 
-      // Scroll dolce per gli anchor link
-      document.querySelectorAll('a[href^="#"]').forEach(a => {
-        a.addEventListener('click', e => {
-          const target = document.querySelector(a.getAttribute('href'));
-          if (target) {
-            e.preventDefault();
-            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }
-        });
-      });
-
-        document.getElementById('scrollTopBtn').addEventListener('click', e => {
+      document.getElementById('scrollTopBtn').addEventListener('click', e => {
         e.preventDefault();
         window.scrollTo({ top: 0, behavior: 'smooth' });
-        });     
+      });     
 
     </script>
   </body>
