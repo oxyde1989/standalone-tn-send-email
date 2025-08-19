@@ -357,8 +357,8 @@ td.header-gradient {{
         
 """    
 , "notify_update_available_text": "You are receiving this email because SendEmail detect that your version is out-of-date. \n\n{__version__} --> {f_new_version}"  
-, "notify_update_done": "This notification has been sent because SendEmail successfully applied an update. \n\nYou are now on vesion {new_version}"
-, "notify_update_fail": "This notification has been sent because SendEmail fail to apply the {new_version} update."
+, "notify_update_done_text": "This notification has been sent because SendEmail successfully applied an update. \n\nYou are now on vesion {new_version}"
+, "notify_update_fail_text": "This notification has been sent because SendEmail fail to apply the {new_version} update."
 }
 
 def render_template(name, **ctx):
