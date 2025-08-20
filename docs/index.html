@@ -3,19 +3,21 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>FAQ • Oxyde SendEmail </title>
+    <title>Oxyde Standalone SendEmail </title>
     <meta name="description" content="Guide and reference for the correct use of the SendEmail" />
-
+    <meta property="og:url" content="https://oxyde1989.github.io/standalone-tn-send-email/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/main/assets/guidelines_preview.png" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>📬</text></svg>">
 
     <style>
-      :root { --hero-gradient: linear-gradient(135deg, #0d6efd 0%, #6f42c1 100%); }
+      :root { --hero-gradient: linear-gradient(135deg, #0d6efd 0%, #14A44D 100%); }
       .hero {
         background: var(--hero-gradient);
         color: #fff;
         border-radius: 1.25rem;
-        padding: 3rem 1.5rem;
+        padding: 1.5rem 0.7rem;
       }
       .hero .btn { box-shadow: 0 0.5rem 1rem rgba(0,0,0,.15); }
       .section-spacer { padding-top: 4rem; margin-top: -4rem; }
@@ -35,7 +37,7 @@
       <div class="container">
         <span  class="navbar-brand d-flex align-items-center gap-2" href="#">
           <span class="fs-5">📬</span>
-          <strong>Standalone SendEmail V1.50 BETA</strong>
+          <strong>Standalone SendEmail V1.50</strong>
         </span >
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav" aria-controls="nav" aria-expanded="false" aria-label="Toggle navigation">
           <span class="navbar-toggler-icon"></span>
@@ -78,7 +80,8 @@
                 </h2>
                 <div id="c-intro-1" class="accordion-collapse collapse" aria-labelledby="h-intro-1" data-bs-parent="#acc-intro">
                   <div class="accordion-body">
-                    Starting from TrueNAS 24.10.10, the sendemail function is no longer available, removed for security reason.<br>
+                    Starting from TrueNAS 24.10.10, the sendemail builtin function is no longer available (removed for security reason).<br>
+                    The <code>mail.send</code> method is still available, but is quite trivial to use due to some payload limitations/encoding/ecc.
                     This standalone script provides the ability to send emails and attachments using the TrueNAS native <code>mail.config</code>, in the simplest possible way.<br>
                     Originally designed to be a wrapper for <a href="https://github.com/JoeSchmuck/Multi-Report/tree/main" target="blank">Joe's Multi Report</a>, it also can be used to simplify sending email overall in many other scenarios.
                   </div>
@@ -94,7 +97,7 @@
                   <div class="accordion-body">
                         Actually, there are basically 2 different usage methods:
                         <ul>
-                            <li>Passing <code>--subject</code>, <code>--to_address</code>, <code>--mail_body_html</code> (either a file path and plain text), plus other optionally args.</li>
+                            <li>Passing <code>--subject</code>, <code>--to_address</code>, <code>--mail_body_html</code> (either a file path and plain text), plus other optionally args explained belove.</li>
                             <li>Passing only the full email base64 encoded (either a file path and plain text) as <code>--mail_bulk</code>, trying to emulating the old sendemail function, and all the info will be retrieved there.</li>
                         </ul>                           
                   </div>
@@ -103,10 +106,28 @@
               <div class="accordion-item">
                 <h2 class="accordion-header" id="h-intro-3">
                   <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c-intro-3" aria-expanded="false" aria-controls="c-intro-3">
-                    🔐 Security Concern
+                    ✔️ Requirements
                   </button>
                 </h2>
                 <div id="c-intro-3" class="accordion-collapse collapse" aria-labelledby="h-intro-3" data-bs-parent="#acc-intro">
+                  <div class="accordion-body">
+                      <ul>
+                        <li>Truenas Scale stable (nightly, alpha, beta, ... are not granted to be fully functional)</li>
+                        <li>Truenas Core 13.* ( with some limitations, like no Outlook provider, some notification are in plain text instead of full HTML)</li>
+                        <li>Working email settings (under System --> General Settings --> Email)</li>
+                        <li>Context user with <code>READONLY_ADMIN</code> or <code>SHARING_ADMIN</code> roles</li>
+                        <li>The script should reside in a <strong>secured dataset/folder</strong></li>
+                      </ul>
+                  </div>
+                </div>
+              </div>                  
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="h-intro-4">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c-intro-4" aria-expanded="false" aria-controls="c-intro-4">
+                    🔐 Security Concern
+                  </button>
+                </h2>
+                <div id="c-intro-4" class="accordion-collapse collapse" aria-labelledby="h-intro-4" data-bs-parent="#acc-intro">
                   <div class="accordion-body">
                         To retrieve TN mail configuration data, at least <code>READONLY_ADMIN</code> or <code>SHARING_ADMIN</code> roles are needed for the user running the script.<br>
                         <b>So is highly advised to only use the script in a secured folder, not accessible to un-priviliged users, to avoid unexpected behaviour.</b><br>
@@ -129,7 +150,7 @@
                 </h2>
                 <div id="c-inst-1" class="accordion-collapse collapse" aria-labelledby="h-inst-1" data-bs-parent="#acc-inst">
                   <div class="accordion-body">
-                    Is possible to override the TN sender name - sender email to fit more scenarios in those ways:
+                    Is possible to override the default TN sender name - sender email to fit more scenarios in those ways:
                     <ul>
                         <li>
                             using directly <code>--override_fromemail</code> or <code>--override_fromname</code> args calling the script
@@ -138,14 +159,17 @@
                             for multi report users, editing own standard <code>mr_config file</code>, value involved are <code>FromName</code> and <code>From</code>, as a fallback
                         </li>
                     </ul>
-                    📌 The priority is: <pre class="code mb-0"> override data > fallback data > default </pre>
-                    <i>If sendemail and <code>mr_config file</code> are in the same folder, fallback values will be still retrieved although you will call the script outsite the multi_report</i><br>
-                    Also to mention, only <code>override_fromname</code> and <code>FromName</code> can be passed, without a email override, and they will be applied to the default email.<br><br>
+                    📌 The priority is: <code> override data > fallback data > default </code><br><br>
+                    <i>If sendemail and <code>mr_config file</code> are in the same folder, fallback values will be still retrieved although you will call the script outsite the multi_report.</i><br>
+                    Also to mention, only <code>override_fromname</code> and <code>FromName</code> can be used, without an email override, and they will be applied to the default TN email.<br><br>
                     <strong>Customize the sender name has no particoular restrictions, is pretty safe, instead you have to pay attention on customizing the sender (reject ratio depending on your provider):</strong>
                     <ul>
-                        <li><strong>GMAIL:</strong> this provider will override your sender with the account email if it is not a validated alias, and the deliver shouldn't fail; you can safely send email with a sender plus address (example, your account is myemail@gmail.com and you use myemail+multireport@gmail.com as sender) </li>
-                        <li><strong>OUTLOOK:</strong> every sender that is not a valid alias of the account will be rejected </li>
-                        <li><strong>SMTP:</strong> every provider has own policy, but the most reject sender that is not a validated account/alias; also to mention, despite the email is send, using a sender with a different domain can be checked as spoofing with the direct conseguence that the email is delivered but go into the SPAM folder </li>                    
+                        <li><img alt="GMAIL" src="https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/main/assets/gmail.png" style="width: 30px">
+                          <strong>GMAIL:</strong> this provider will override your sender with the account email if it is not a validated alias, and the deliver shouldn't fail; you can safely send email with a sender plus address (example, your account is myemail@gmail.com and you use myemail+multireport@gmail.com as sender) </li>
+                        <li><img alt="OUTLOOK" src="https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/main/assets/outlook.png" style="width: 30px">
+                          <strong>OUTLOOK:</strong> every sender that is not a valid alias of the account will be rejected </li>
+                        <li><img alt="SMTP" src="https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/main/assets/smtp.png" style="width: 30px">
+                          <strong>SMTP:</strong> every provider has own policy, but the most reject sender that is not a validated account/alias; also to mention, despite the email is send, using a sender with a different domain can be checked as spoofing with the direct conseguence that the email is delivered but go into the SPAM folder </li>                    
                     </ul>
                   </div>
                 </div>
@@ -176,7 +200,7 @@
                         If you wanna just test the basic function fast and quickly, use the <code>--test_mode</code> and the script will compose and send a test email to the actual user email address.<br>
                         In test mode, every arg will be overwritten, <b>also the debug will be enabled automatically</b>. 
                         If the script is in the same Multi Report folder, the fallback from the multi_report_config.txt <code>FromName</code> and <code>From</code> will be used, so you can ensure that the fallbacks are working properly.
-                        <img class="img-fluid" src="https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/main/assets/test_email.png">
+                        <img alt="test preview" class="img-fluid" src="https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/main/assets/test_email.png">
                   </div>
                 </div>
               </div>              
@@ -256,7 +280,7 @@
                 <div id="c-usex-0" class="accordion-collapse collapse" aria-labelledby="h-usex-0" data-bs-parent="#acc-usex">
                   <div class="accordion-body">
                       <pre class="code mb-0"><code>#!/bin/bash
-python3 multireport_sendemail.py --test_mode</code> </pre>
+python3 sendemail.py --test_mode</code> </pre>
                   </div>
                 </div>
               </div>                
@@ -280,7 +304,7 @@ attachment=()
 attachment+=("path/to/first/attachment")  # Replace with the actual path
 #attachment+=("path/to/second/attachment") # Add additional files as needed
 
-python3 multireport_sendemail.py \
+python3 sendemail.py \
     --subject "$subject" \
     --to_address "$recipient" \
     --mail_body_html "$html_file" \
@@ -298,7 +322,7 @@ python3 multireport_sendemail.py \
                   <div class="accordion-body">
                       <pre class="code mb-0"><code>#!/bin/bash
 mail_bulk= '/path/to/base64encode/email'
-python3 multireport_sendemail.py --mail_bulk "$mail_bulk" </code></pre>
+python3 sendemail.py --mail_bulk "$mail_bulk" </code></pre>
                   </div>
                 </div>
               </div>
@@ -315,7 +339,7 @@ subject='test'
 recipient='myemail@gmail.com'
 html_file="&#60;h1&#62;Send Email Test&#60;/h1&#62;&#60;p&#62;Hello World!&#60;/p&#62;"
 
-python3 multireport_sendemail.py \
+python3 sendemail.py \
     --subject "$subject" \
     --to_address "$recipient" \
     --mail_body_html "$html_file" \
@@ -337,7 +361,7 @@ subject='test'
 recipient='myemail@gmail.com'
 html_file="&#60;h1&#62;Send Email Test&#60;/h1&#62;&#60;p&#62;Hello World!&#60;/p&#62;"
 
-python3 multireport_sendemail.py \
+python3 sendemail.py \
     --subject "$subject" \
     --to_address "$recipient" \
     --mail_body_html "$html_file" \
@@ -354,7 +378,7 @@ python3 multireport_sendemail.py \
                 <div id="c-usex-5" class="accordion-collapse collapse" aria-labelledby="h-usex-5" data-bs-parent="#acc-usex">
                   <div class="accordion-body">
                       <pre class="code mb-0"><code>#!/bin/bash
-python3 multireport_sendemail.py --notify_update</code></pre>
+python3 sendemail.py --notify_update</code></pre>
                   </div>
                 </div>
               </div>  
@@ -367,7 +391,7 @@ python3 multireport_sendemail.py --notify_update</code></pre>
                 <div id="c-usex-6" class="accordion-collapse collapse" aria-labelledby="h-usex-6" data-bs-parent="#acc-usex">
                   <div class="accordion-body">
                       <pre class="code mb-0"><code>#!/bin/bash
-python3 multireport_sendemail.py --self_update --notify_self_update</code></pre>
+python3 sendemail.py --self_update --notify_self_update</code></pre>
                   </div>
                 </div>
               </div>                              

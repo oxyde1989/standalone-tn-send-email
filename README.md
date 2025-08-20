@@ -1,24 +1,24 @@
-# 📬 Stand-alone TrueNAS Send Email Script  
+# 📬 Standalone TrueNAS Send Email Script  
 *using the built-in `mail.config` data*
-
----
-
-## 📌 About the project
-
-Starting from Truenas 24.10.10, the `sendemail` function is no longer available, removed for security reason.  
-This standalone script provides the ability to send emails and attachments using the TrueNAS native `mail.config`, in the simplest possible way for end users.  
-Originally designed to be a wrapper for [Joe's Multi Report](https://github.com/JoeSchmuck/Multi-Report), it also can be used for simplify sending email overall in many other scenarios.  
-  
-Actually, there are 2 different basic usage methods:
-
-1. Passing `--subject`, `--to_address`, `--mail_body_html` (nor a file path and plain text), plus other optionally args (like attachments, override sender-sendername, ecc).
-2. Passing only the full email base64 encoded (nor a file path and plain text) as `--mail_bulk`, trying to emulating the old `sendemail` function, and all the info will be retrieved there.
 
 ## 🧰 Guidelines
 
 [Full documentation and guidelines link](https://oxyde1989.github.io/standalone-tn-send-email/)
 
----
+## 📌 About the project
+
+Starting from TrueNAS 24.10.10, the sendemail builtin function is no longer available (removed for security reason).
+
+The `mail.send` method is still available, but is quite trivial to use due to some payload limitations/encoding/ecc.
+
+This standalone script provides the ability to send emails and attachments using the TrueNAS native `mail.config`, in the simplest possible way.
+
+Originally designed to be a wrapper for [Joe's Multi Report](https://github.com/JoeSchmuck/Multi-Report), it also can be used to simplify sending email overall in many other scenarios.
+  
+Actually, there are 2 different basic usage methods:
+
+1. Passing `--subject`, `--to_address`, `--mail_body_html` (either a file path and plain text), plus other optionally args (like attachments, override logics, see [the guidelines](https://oxyde1989.github.io/standalone-tn-send-email/) for full details and usage examples).
+2. Passing only the full email base64 encoded (nor a file path and plain text) as `--mail_bulk`, trying to emulating the old `sendemail` function, and all the info will be retrieved there.
 
 ## 🔐 Security Concern
 
