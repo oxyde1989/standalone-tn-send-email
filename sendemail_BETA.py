@@ -11,9 +11,9 @@ from email import message_from_string
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
-##### V 1.50
+##### V 1.55
 ##### Stand alone script to send email via Truenas
-__version__ = "1.50"
+__version__ = "1.55"
 __ghlink__ = "https://github.com/oxyde1989/standalone-tn-send-email"
 __ghlink_raw__ = "https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/refs/heads/main/sendemail.py"
 __ghlink_raw_sha__ = "https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/refs/heads/main/sendemail.py.sha256"
@@ -359,6 +359,55 @@ td.header-gradient {{
 , "notify_update_available_text": "You are receiving this email because SendEmail detect that your version is out-of-date. \n\n{__version__} --> {f_new_version}"  
 , "notify_update_done_text": "This notification has been sent because SendEmail successfully applied an update. \n\nYou are now on vesion {new_version}"
 , "notify_update_fail_text": "This notification has been sent because SendEmail fail to apply the {new_version} update."
+, "UT_default":
+    """
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
+<style>
+td.header-gradient {{
+    background:linear-gradient(135deg,#3b82f6,#6366f1);
+}}
+@media (prefers-color-scheme: dark) {{
+  table[role="presentation"] {{ background:#0b0f14 !important; }}
+  h1, p, td, a {{ color:#e5e7eb !important; }}
+  a {{ border-color:#4f46e5 !important; background:#4f46e5 !important; }}
+  td.header-gradient {{
+    background: linear-gradient(135deg, #1e3a8a, #312e81) !important;
+  }}  
+}}
+</style>
+<!-- Preheader -->
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">
+  {subject}
+</div>
+
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background:#f5f7fb;margin:0;padding:0;">
+  <tr>
+    <td align="center" style="padding:24px 12px;">
+      <!-- Container -->
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="80%" style="max-width:80%;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e6e9f2;">
+        <!-- Header / Brand -->
+        <tr>
+          <td align="center" class="header-gradient" style="padding:20px 24px;">
+            <h1 style="margin:14px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:26px;line-height:1.25;color:#ffffff;">
+              {subject}
+            </h1>
+          </td>
+        </tr>
+
+        <!-- Body -->
+        <tr>
+          <td style="padding:28px 24px 8px 24px; color:#111827;">
+                {html_content}
+          </td>
+        </tr>
+
+      </table>
+      <!-- /Container -->
+    </td>
+  </tr>
+</table>
+"""    
 }
 
 def render_template(name, **ctx):
@@ -768,6 +817,18 @@ def load_html_content(input_content):
             return input_content            
     except Exception as e:
         process_output(True, f"Something wrong on body content {e}", 1)  
+        
+def add_user_template(u_template, u_subject, u_content):
+    AVAILABLE_TEMPLATE = [
+        "UT_default"
+    ]
+    
+    if u_template in AVAILABLE_TEMPLATE:
+        append_log(f"template {u_template} is valid")
+        return render_template(u_template, subject=u_subject, html_content=u_content)
+    else:
+        append_log("template not applied")
+        return u_content
 
 def validate_base64_content(input_content):
     """
@@ -919,7 +980,7 @@ def get_fromname_fromemail(options):
 def get_test_message():
     return render_template("test_message", __version__=__version__,__ghlink__=__ghlink__) 
                    
-def send_email(subject, to_address, mail_body_html, attachment_files, email_config, provider, bulk_email):
+def send_email(subject, to_address, mail_body_html, attachment_files, email_config, provider, bulk_email, user_template):
     """
     Function to send an email via SMTP or Gmail OAuth based on the provider available
     """
@@ -956,6 +1017,8 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                 append_log("mail hmtl provided")
                 append_log("parsing html content") 
                 html_content = load_html_content(mail_body_html)
+                append_log("trying apply a template") 
+                html_content = add_user_template(user_template, subject, html_content)                
 
                 append_log("start parsing headers")
                 msg = MIMEMultipart()
@@ -1114,7 +1177,9 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                 msg['subject'] = subject
                         
                 append_log("parsing html content") 
-                html_content = load_html_content(mail_body_html)            
+                html_content = load_html_content(mail_body_html) 
+                append_log("trying apply a template") 
+                html_content = add_user_template(user_template, subject, html_content)                            
                 msg.attach(MIMEText(html_content, 'html'))
                 
                 append_log("check for attachements...") 
@@ -1156,7 +1221,9 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                 append_log("mail hmtl provided")
                 append_log("parsing html content") 
                 html_content = load_html_content(mail_body_html)
-
+                append_log("trying apply a template") 
+                html_content = add_user_template(user_template, subject, html_content) 
+                
                 append_log("start parsing headers")
                 msg = MIMEMultipart()
                 append_log("parsing data from config and override options")                                 
@@ -1276,7 +1343,8 @@ if __name__ == "__main__":
     parser.add_argument("--notify_update", help="OPTIONAL use to let the script to only check update availability, and notify the context user. Use in a cronjob with a weekly check", action='store_true')   
     parser.add_argument("--check_update", help="OPTIONAL use to let the script to only check update availability", action='store_true')              
     parser.add_argument("--self_update", help="OPTIONAL use to let the script to check update availability and perform an update when needed", action='store_true')      
-    parser.add_argument("--notify_self_update", help="OPTIONAL use to let the script to send a notification if a self update is performed", action='store_true')     
+    parser.add_argument("--notify_self_update", help="OPTIONAL use to let the script to send a notification if a self update is performed", action='store_true') 
+    parser.add_argument("--use_template", help="OPTIONAL specify a template code to wrap the email. Not available in bulk path")    
     
     args = parser.parse_args()
     
@@ -1347,7 +1415,7 @@ if __name__ == "__main__":
         else:
             process_output(True, "Can't switch provider", 1)
             
-        attachment_count_valid = send_email(args.subject, args.to_address, args.mail_body_html, args.attachment_files, email_config, provider, args.mail_bulk)
+        attachment_count_valid = send_email(args.subject, args.to_address, args.mail_body_html, args.attachment_files, email_config, provider, args.mail_bulk, args.use_template)
         
         if attachment_count_valid is None:
             attachment_count_valid = 0
