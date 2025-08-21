@@ -15,8 +15,8 @@ from google.oauth2.credentials import Credentials
 ##### Stand alone script to send email via Truenas
 __version__ = "1.50"
 __ghlink__ = "https://github.com/oxyde1989/standalone-tn-send-email"
-__ghlink_raw__ = "https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/refs/heads/main/multireport_sendemail.py"
-__ghlink_raw_sha__ = "https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/refs/heads/main/multireport_sendemail.py.sha256"
+__ghlink_raw__ = "https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/refs/heads/main/sendemail.py"
+__ghlink_raw_sha__ = "https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/refs/heads/main/sendemail.py.sha256"
 __script_path__ = os.path.abspath(__file__)
 __script_name__ = os.path.basename(__script_path__)
 
