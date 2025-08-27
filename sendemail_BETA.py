@@ -24,7 +24,11 @@ __email_template__ = f"https://raw.githubusercontent.com/oxyde1989/standalone-tn
 def render_template(name, **ctx):
     """
         this function will help to format out the email templates get by repo, to keep the code clean as possible. Now switch correctly from core and scale
-    """     
+    """
+    class HandleMissingVar(dict):
+        def __missing__(self, key):
+            return "[" + key + "]"
+
     try:
         append_log(f"Entering template render. Scale/Core switch needed")
         _name = name if os.path.exists("/usr/bin/midclt") else f"{name}_text"
@@ -32,15 +36,16 @@ def render_template(name, **ctx):
         reqtempl = urllib.request.Request(__email_template__, headers={"User-Agent": "tn-send-email"})
         append_log(f"reading template")
         with urllib.request.urlopen(reqtempl, timeout=5) as resptempl:
-            template_list = json.loads(resptempl.read().decode("utf-8"))    
-            append_log(f"templates loaded")    
-        return template_list[_name].format(**ctx)
+            template_list = json.loads(resptempl.read().decode("utf-8"))
+            append_log(f"templates loaded")
+        return template_list[_name].format_map(HandleMissingVar(**ctx))
     except Exception as e:
         return f"[ERROR] rendering template '{name}': {e}"
       
 def add_user_template(u_template, u_subject, u_content, u_var=None):
     AVAILABLE_TEMPLATE = [
         "UT_default"
+        , "UT_test"
     ]
     
     if not u_template:
@@ -653,7 +658,7 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                 append_log("parsing html content") 
                 html_content = load_html_content(mail_body_html)
                 append_log("trying apply a template") 
-                html_content = add_user_template(user_template, subject, html_content)                
+                html_content = add_user_template(user_template, subject, html_content, args.template_var)                
 
                 append_log("start parsing headers")
                 msg = MIMEMultipart()
@@ -814,7 +819,7 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                 append_log("parsing html content") 
                 html_content = load_html_content(mail_body_html) 
                 append_log("trying apply a template") 
-                html_content = add_user_template(user_template, subject, html_content)                            
+                html_content = add_user_template(user_template, subject, html_content, args.template_var)                            
                 msg.attach(MIMEText(html_content, 'html'))
                 
                 append_log("check for attachements...") 
@@ -857,7 +862,7 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                 append_log("parsing html content") 
                 html_content = load_html_content(mail_body_html)
                 append_log("trying apply a template") 
-                html_content = add_user_template(user_template, subject, html_content) 
+                html_content = add_user_template(user_template, subject, html_content, args.template_var) 
                 
                 append_log("start parsing headers")
                 msg = MIMEMultipart()
