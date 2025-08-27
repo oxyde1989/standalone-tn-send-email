@@ -64,7 +64,7 @@ td.header-gradient {{
               </tr>
             </table>
             <h1 style="margin:14px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:26px;line-height:1.25;color:#ffffff;">
-              ✅ SendEmail Test Passed ✅
+              🟢 SendEmail Test Passed 🟢
             </h1>
           </td>
         </tr>
@@ -103,7 +103,7 @@ td.header-gradient {{
                   Provided with &lt;3 by <span style="color:#111827;font-weight:600;">Oxyde</span>
                 </td>
                 <td align="right" style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#9ca3af;">
-                  <a href="{__ghlink__}/issues" style="color:#6b7280;text-decoration:none;">⚙️ Need support?</a>
+                  <a href="{__ghlink__}/issues" style="color:#6b7280;text-decoration:none;">🆘 Need support?</a>
                 </td>
               </tr>
             </table>
@@ -152,7 +152,7 @@ td.header-gradient {{
               </tr>
             </table>
             <h1 style="margin:14px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:26px;line-height:1.25;color:#ffffff;">
-              🔥 SendEmail update available 🔥
+              ℹ️ SendEmail update available ℹ️
             </h1>
           </td>
         </tr>
@@ -179,7 +179,7 @@ td.header-gradient {{
                   Provided with &lt;3 by <span style="color:#111827;font-weight:600;">Oxyde</span>
                 </td>
                 <td align="right" style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#9ca3af;">
-                  <a href="{__ghlink__}/issues" style="color:#6b7280;text-decoration:none;">⚙️ Need support?</a>
+                  <a href="{__ghlink__}/issues" style="color:#6b7280;text-decoration:none;">🆘 Need support?</a>
                 </td>
               </tr>
             </table>
@@ -229,7 +229,7 @@ td.header-gradient {{
               </tr>
             </table>
             <h1 style="margin:14px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:26px;line-height:1.25;color:#ffffff;">
-              🛠 SendEmail update has been applied 🛠
+              🟢 SendEmail update has been applied 🟢
             </h1>
           </td>
         </tr>
@@ -258,7 +258,7 @@ td.header-gradient {{
                   Provided with &lt;3 by <span style="color:#111827;font-weight:600;">Oxyde</span>
                 </td>
                 <td align="right" style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#9ca3af;">
-                  <a href="{__ghlink__}/issues" style="color:#6b7280;text-decoration:none;">⚙️ Need support?</a>
+                  <a href="{__ghlink__}/issues" style="color:#6b7280;text-decoration:none;">🆘 Need support?</a>
                 </td>
               </tr>
             </table>
@@ -308,7 +308,7 @@ td.header-gradient {{
               </tr>
             </table>
             <h1 style="margin:14px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:26px;line-height:1.25;color:#ffffff;">
-              🛠 SendEmail update has failed 🛠
+              🔴 SendEmail update has failed 🔴
             </h1>
           </td>
         </tr>
@@ -337,7 +337,7 @@ td.header-gradient {{
                   Provided with &lt;3 by <span style="color:#111827;font-weight:600;">Oxyde</span>
                 </td>
                 <td align="right" style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#9ca3af;">
-                  <a href="{__ghlink__}/issues" style="color:#6b7280;text-decoration:none;">⚙️ Need support?</a>
+                  <a href="{__ghlink__}/issues" style="color:#6b7280;text-decoration:none;">🆘 Need support?</a>
                 </td>
               </tr>
             </table>
@@ -572,7 +572,7 @@ class PerformUpdate:
             
     def post_update_send_notify(self):    
         append_log("preparing email to notify the update") 
-        f_subject = f"🔥TN SendEmail {self.new_version} installed"
+        f_subject = f"🟢TN SendEmail {self.new_version} installed"
         f_text = self.get_postupdate_message()
         try:
             quick_tn_builtin_sendemail(f_subject, f_text)   
@@ -581,7 +581,7 @@ class PerformUpdate:
              
     def post_update_fail_send_notify(self):    
         append_log("preparing email to notify the fail update") 
-        f_subject = f"🔥TN SendEmail {self.new_version} install FAIL"
+        f_subject = f"🔴TN SendEmail {self.new_version} install FAIL"
         f_text = self.get_postupdate_fail_message()
         try:
             quick_tn_builtin_sendemail(f_subject, f_text)   
@@ -600,7 +600,7 @@ class NotifyForUpdate:
         try:
             f_new_version, f_update_available = CheckForUpdate().parse_as_resp()
             if f_update_available:
-                f_subject = f"🔥TN SendEmail {f_new_version} available"
+                f_subject = f"ℹ️TN SendEmail {f_new_version} available"
                 f_text = get_update_message()
                 try:
                     quick_tn_builtin_sendemail(f_subject, f_text)   
