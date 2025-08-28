@@ -11,33 +11,34 @@ from email import message_from_string
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
-##### V 1.55
+##### V 1.60
 ##### Stand alone script to send email via Truenas
-__version__ = "1.55"
+__version__ = "1.60"
 __ghlink__ = "https://github.com/oxyde1989/standalone-tn-send-email"
 __ghlink_raw__ = "https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/refs/heads/main/sendemail.py"
 __ghlink_raw_sha__ = "https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/refs/heads/main/sendemail.py.sha256"
+__email_template__ = f"https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/refs/heads/main/templates/{__version__}.json"
+__script_directory__ = os.getcwd()
 __script_path__ = os.path.abspath(__file__)
 __script_name__ = os.path.basename(__script_path__)
-__email_template__ = f"https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/refs/heads/main/templates/{__version__}.json"
+
+class HandleMissingVar(dict):
+    def __missing__(self, key):
+        return "[" + key + "]"
 
 def render_template(name, **ctx):
     """
         this function will help to format out the email templates get by repo, to keep the code clean as possible. Now switch correctly from core and scale
     """
-    class HandleMissingVar(dict):
-        def __missing__(self, key):
-            return "[" + key + "]"
-
     try:
-        append_log(f"Entering template render. Scale/Core switch needed")
+        append_log("Entering template render. Scale/Core switch needed")
         _name = name if os.path.exists("/usr/bin/midclt") else f"{name}_text"
         append_log(f"search for {name} template on REPO")
         reqtempl = urllib.request.Request(__email_template__, headers={"User-Agent": "tn-send-email"})
-        append_log(f"reading template")
+        append_log("reading template")
         with urllib.request.urlopen(reqtempl, timeout=5) as resptempl:
             template_list = json.loads(resptempl.read().decode("utf-8"))
-            append_log(f"templates loaded")
+            append_log("templates loaded")
         return template_list[_name].format_map(HandleMissingVar(**ctx))
     except Exception as e:
         return f"[ERROR] rendering template '{name}': {e}"
@@ -48,13 +49,14 @@ def add_user_template(u_template, u_subject, u_content, u_var=None):
         , "UT_test"
     ]
     
+    u_template_file = os.path.join(__script_directory__, u_template)
     if not u_template:
       append_log("no template provided")
       return u_content
-    if u_template in AVAILABLE_TEMPLATE:
+    elif u_template in AVAILABLE_TEMPLATE or os.path.exists(u_template_file):
         append_log(f"template {u_template} is valid")
         user_vars = {}
-        append_log("try building user var")
+        append_log("try building user custom fields")
         if u_var:
             try:
                 parsed = json.loads(u_var)
@@ -64,12 +66,23 @@ def add_user_template(u_template, u_subject, u_content, u_var=None):
                     append_log("var provided is not a JSON object — ignored")
             except Exception as e:
                 append_log(f"JSON error: {e} retrieving user var")
-        completevar = {**user_vars, "subject": u_subject, "html_content": u_content}           
-        try:
-          return render_template(u_template, **completevar)
-        except Exception as e:
-            append_log(f"template '{u_template}' error: {e} — fallback to raw content")
-            return u_content        
+        completevar = {**user_vars, "subject": u_subject, "html_content": u_content}
+        append_log("switch from builtin template or custom file template")        
+        if u_template in AVAILABLE_TEMPLATE:  
+            append_log("builtin template provided") 
+            try:
+                return render_template(u_template, **completevar)
+            except Exception as e:
+                append_log(f"template '{u_template}' error: {e} — fallback to raw content")
+                return u_content   
+        elif os.path.exists(u_template_file):
+            try:
+                with open(u_template_file, 'r') as g:
+                    u_template_file_content = g.read()    
+                return u_template_file_content.format_map(HandleMissingVar(**completevar))
+            except Exception as e:
+                append_log(f"custom template '{u_template}' error: {e} — fallback to raw content")
+                return u_content               
     else:
         append_log(f"template {u_template} not applied")
         return u_content      
@@ -111,7 +124,7 @@ class PerformUpdate:
         this class will handle all the update process of the script. It rely on CheckForUpdate class and on the built in truenas send email to avoid conflicts
     """     
     def __init__(self):
-        self.staging_dir = os.path.join(os.getcwd(), "sendemail_update")
+        self.staging_dir = os.path.join(__script_directory__, "sendemail_update")
         self.new_version = None
         self.backup_path = None
         append_log(f"### Script Version: {__version__} ###")
@@ -278,8 +291,8 @@ def validate_arguments(args):
             print(f"Error: arg '{param_name}' contains CRLF char, not allowed")
             sys.exit(1)        
     if args.debug_enabled:
-        if not os.access(os.getcwd(), os.W_OK):
-            print(f"Current user doesn't have permission in the execution folder: {os.getcwd()}")
+        if not os.access(__script_directory__, os.W_OK):
+            print(f"Current user doesn't have permission in the execution folder: {__script_directory__}")
             sys.exit(1)     
         sfw = is_secure_directory()
         if sfw:
@@ -305,7 +318,7 @@ def is_secure_directory(directory_to_check=None):
         return ""
     else:    
         try:
-            directory_to_check = directory_to_check or os.getcwd()
+            directory_to_check = directory_to_check or __script_directory__
             stat_info  = os.stat(directory_to_check)
             append_message = ""
             if stat_info .st_uid != os.getuid():
@@ -329,7 +342,7 @@ def is_secure_directory_forupdate(__script_path__, __version__, directory_to_che
         
     directory = directory_to_check
     if not directory:
-        directory = os.path.dirname(os.path.abspath(__script_path__)) or os.getcwd()
+        directory = os.path.dirname(os.path.abspath(__script_path__)) or __script_directory__
     try:
         st = os.stat(directory, follow_symlinks=True)
     except Exception as e:
@@ -354,7 +367,7 @@ def create_log_file():
         return None, 0
     else:
         try:    
-            log_dir = os.path.join(os.getcwd(), 'sendemail_log')
+            log_dir = os.path.join(__script_directory__, 'sendemail_log')
             
             if os.path.islink(log_dir):
                 print("Something wrong is happening here: the sendemail_log folder is a symlink")
@@ -1002,7 +1015,6 @@ if __name__ == "__main__":
         _, precheck = CheckForUpdate().parse_as_resp()
         if precheck:
             is_secure_directory_forupdate(__script_path__, __version__)           
-            args.debug_enabled = True
             log_file, log_file_count = create_log_file()
             PerformUpdate().apply_update()               
         else:
