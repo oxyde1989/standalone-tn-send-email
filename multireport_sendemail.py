@@ -49,11 +49,11 @@ def add_user_template(u_template, u_subject, u_content, u_var=None):
         , "UT_default_adv"
     ]
     
-    u_template_file = os.path.join(__script_directory__, u_template)
     if not u_template:
       append_log("no template provided")
-      return u_content
-    elif u_template in AVAILABLE_TEMPLATE or os.path.exists(u_template_file):
+      return u_content, u_subject
+    u_template_file = os.path.join(__script_directory__, u_template)  
+    if u_template in AVAILABLE_TEMPLATE or os.path.exists(u_template_file):
         append_log(f"template {u_template} is valid")
         user_vars = {}
         append_log("try building user custom fields")
@@ -66,26 +66,28 @@ def add_user_template(u_template, u_subject, u_content, u_var=None):
                     append_log("var provided is not a JSON object — ignored")
             except Exception as e:
                 append_log(f"JSON error: {e} retrieving user var")
+        u_content = u_content.format_map(HandleMissingVar(**user_vars))  
+        u_subject = u_subject.format_map(HandleMissingVar(**user_vars))     
         completevar = {**user_vars, "subject": u_subject, "html_content": u_content}
         append_log("switch from builtin template or custom file template")        
         if u_template in AVAILABLE_TEMPLATE:  
             append_log("builtin template provided") 
             try:
-                return render_template(u_template, **completevar)
+                return render_template(u_template, **completevar), u_subject
             except Exception as e:
                 append_log(f"template '{u_template}' error: {e} — fallback to raw content")
-                return u_content   
+                return u_content, u_subject   
         elif os.path.exists(u_template_file):
             try:
                 with open(u_template_file, 'r') as g:
                     u_template_file_content = g.read()    
-                return u_template_file_content.format_map(HandleMissingVar(**completevar))
+                return u_template_file_content.format_map(HandleMissingVar(**completevar)), u_subject
             except Exception as e:
                 append_log(f"custom template '{u_template}' error: {e} — fallback to raw content")
-                return u_content               
+                return u_content, u_subject               
     else:
         append_log(f"template {u_template} not applied")
-        return u_content      
+        return u_content, u_subject      
     
 def quick_tn_builtin_sendemail(tn_subject, tn_text):
     tn_payload_dict = {"subject": tn_subject, "html": tn_text}
@@ -671,7 +673,7 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                 append_log("parsing html content") 
                 html_content = load_html_content(mail_body_html)
                 append_log("trying apply a template") 
-                html_content = add_user_template(user_template, subject, html_content, args.template_var)                
+                html_content, subject = add_user_template(user_template, subject, html_content, args.template_var)                
 
                 append_log("start parsing headers")
                 msg = MIMEMultipart()
@@ -823,17 +825,17 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                 append_log("mail hmtl provided")
                 append_log("start parsing headers")          
                 msg = MIMEMultipart()
-                
-                append_log("parsing data from config and override options")                                 
-                msg['From'], smtp_senderemail = get_fromname_fromemail(from_options)                                         
-                msg['to'] = to_address
-                msg['subject'] = subject
                         
                 append_log("parsing html content") 
                 html_content = load_html_content(mail_body_html) 
                 append_log("trying apply a template") 
-                html_content = add_user_template(user_template, subject, html_content, args.template_var)                            
+                html_content, subject = add_user_template(user_template, subject, html_content, args.template_var)                            
                 msg.attach(MIMEText(html_content, 'html'))
+                
+                append_log("parsing data from config and override options")                                 
+                msg['From'], smtp_senderemail = get_fromname_fromemail(from_options)                                         
+                msg['to'] = to_address
+                msg['subject'] = subject                
                 
                 append_log("check for attachements...") 
                 if attachment_files:
@@ -875,7 +877,7 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                 append_log("parsing html content") 
                 html_content = load_html_content(mail_body_html)
                 append_log("trying apply a template") 
-                html_content = add_user_template(user_template, subject, html_content, args.template_var) 
+                html_content, subject = add_user_template(user_template, subject, html_content, args.template_var) 
                 
                 append_log("start parsing headers")
                 msg = MIMEMultipart()
