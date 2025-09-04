@@ -28,6 +28,22 @@
         padding: 1rem;
       }
       footer { border-top: 1px solid var(--bs-border-color); }
+      .small-img-round {
+        width: 30px;
+        border-radius: 25px;
+      }
+      .img-thumbnail {
+        max-width: 200px;;
+      }
+      ul li + li {
+        margin-top: 3px;
+        margin-bottom: 3px;
+      }  
+    ul.mpr li + li {
+      margin-top: 10px;
+      margin-bottom: 10px;
+    }      
+      
     </style>
   </head>
 
@@ -37,7 +53,7 @@
       <div class="container">
         <span  class="navbar-brand d-flex align-items-center gap-2" href="#">
           <span class="fs-5">📬</span>
-          <strong>Standalone SendEmail V1.50</strong>
+          <strong>Standalone SendEmail V1.60</strong>
         </span >
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav" aria-controls="nav" aria-expanded="false" aria-label="Toggle navigation">
           <span class="navbar-toggler-icon"></span>
@@ -81,8 +97,8 @@
                 <div id="c-intro-1" class="accordion-collapse collapse" aria-labelledby="h-intro-1" data-bs-parent="#acc-intro">
                   <div class="accordion-body">
                     Starting from TrueNAS 24.10.10, the sendemail builtin function is no longer available (removed for security reason).<br>
-                    The <code>mail.send</code> method is still available, but is quite trivial to use due to some payload limitations/encoding/ecc.
-                    This standalone script provides the ability to send emails and attachments using the TrueNAS native <code>mail.config</code>, in the simplest possible way.<br>
+                    The <code>mail.send</code> method is still available, but is quite trivial to use due to some payload limitations/encoding/ecc.<br>
+                    This standalone script provides the ability to send emails and attachments using the TrueNAS native <code>mail.config</code>, in the simplest possible way, without giving up on some more advanced features that are not natively available.<br>
                     Originally designed to be a wrapper for <a href="https://github.com/JoeSchmuck/Multi-Report/tree/main" target="blank">Joe's Multi Report</a>, it also can be used to simplify sending email overall in many other scenarios.
                   </div>
                 </div>
@@ -99,7 +115,8 @@
                         <ul>
                             <li>Passing <code>--subject</code>, <code>--to_address</code>, <code>--mail_body_html</code> (either a file path and plain text), plus other optionally args explained belove.</li>
                             <li>Passing only the full email base64 encoded (either a file path and plain text) as <code>--mail_bulk</code>, trying to emulating the old sendemail function, and all the info will be retrieved there.</li>
-                        </ul>                           
+                        </ul> 
+                        Check the <a href="#advanced" class="btn btn-sm btn-primary">Advanced usage methods</a> section for more details!                          
                   </div>
                 </div>
               </div>
@@ -112,10 +129,12 @@
                 <div id="c-intro-3" class="accordion-collapse collapse" aria-labelledby="h-intro-3" data-bs-parent="#acc-intro">
                   <div class="accordion-body">
                       <ul>
-                        <li>Truenas Scale stable (nightly, alpha, beta, ... are not granted to be fully functional)</li>
-                        <li>Truenas Core 13.* ( with some limitations, like no Outlook provider, some notification are in plain text instead of full HTML)</li>
-                        <li>Working email settings (under System --> General Settings --> Email)</li>
-                        <li>Context user with <code>READONLY_ADMIN</code> or <code>SHARING_ADMIN</code> roles</li>
+                        <li>Truenas Scale <b>stable</b> train (nightly, alpha, beta, ... are not officially supported)</li>
+                        <li>Truenas Core is also supported, with some minor limitation</li>
+                        <li>Working internet connection</li>
+                        <li>Working email settings in Truenas (System ➜ General Settings ➜ Email)</li>
+                        <li>Context usage user with at least <code>READONLY_ADMIN</code> or <code>SHARING_ADMIN</code> roles</li>
+                        <li>Context usage user with enough permissions on the execution folder</li>
                         <li>The script should reside in a <strong>secured dataset/folder</strong></li>
                       </ul>
                   </div>
@@ -160,15 +179,15 @@
                         </li>
                     </ul>
                     📌 The priority is: <code> override data > fallback data > default </code><br><br>
-                    <i>If sendemail and <code>mr_config file</code> are in the same folder, fallback values will be still retrieved although you will call the script outsite the multi_report.</i><br>
+                    <i>If sendemail and <code>mr_config file</code> are in the same folder, fallback values will be still retrieved although you will call the script outside the multi_report.</i><br>
                     Also to mention, only <code>override_fromname</code> and <code>FromName</code> can be used, without an email override, and they will be applied to the default TN email.<br><br>
                     <strong>Customize the sender name has no particoular restrictions, is pretty safe, instead you have to pay attention on customizing the sender (reject ratio depending on your provider):</strong>
-                    <ul>
-                        <li><img alt="GMAIL" src="https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/main/assets/gmail.png" style="width: 30px">
+                    <ul class="mpr">
+                        <li><img alt="GMAIL" src="https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/main/assets/gmail.png" class="small-img-round">
                           <strong>GMAIL:</strong> this provider will override your sender with the account email if it is not a validated alias, and the deliver shouldn't fail; you can safely send email with a sender plus address (example, your account is myemail@gmail.com and you use myemail+multireport@gmail.com as sender) </li>
-                        <li><img alt="OUTLOOK" src="https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/main/assets/outlook.png" style="width: 30px">
+                        <li><img alt="OUTLOOK" src="https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/main/assets/outlook.png" class="small-img-round">
                           <strong>OUTLOOK:</strong> every sender that is not a valid alias of the account will be rejected </li>
-                        <li><img alt="SMTP" src="https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/main/assets/smtp.png" style="width: 30px">
+                        <li><img alt="SMTP" src="https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/main/assets/smtp.png" class="small-img-round">
                           <strong>SMTP:</strong> every provider has own policy, but the most reject sender that is not a validated account/alias; also to mention, despite the email is send, using a sender with a different domain can be checked as spoofing with the direct conseguence that the email is delivered but go into the SPAM folder </li>                    
                     </ul>
                   </div>
@@ -182,7 +201,7 @@
                 </h2>
                 <div id="c-inst-2" class="accordion-collapse collapse" aria-labelledby="h-inst-2" data-bs-parent="#acc-inst">
                   <div class="accordion-body">
-                    In case of need, passing <code>--debug_enabled</code> as arg to the script will activate the debug mode: a log file will be generated and placed into </code>sendemail_log</code> folder. <br>
+                    In case of need, passing <code>--debug_enabled</code> as arg to the script will activate the debug mode: a log file will be generated and placed into <code>sendemail_log</code> folder. <br>
                     Folder itself and files can be safely deleted manually anytime the script is not running.<br>
                     Calling the script from crontab, with the debug enabled, can lead to problem if the root user is the one used and, before invoke the script, the correct working directory is not selected with a <code>cd</code> command.<br>
                     Log files not obviously expose credentials or access token, but don't forget to cleanup after a debug session anyway to not expose more-or-less sensitive data in your usage context arising from exceptions.
@@ -203,7 +222,116 @@
                         <img alt="test preview" class="img-fluid" src="https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/main/assets/test_email.png">
                   </div>
                 </div>
-              </div>              
+              </div>  
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="h-inst-4">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c-inst-4" aria-expanded="false" aria-controls="c-inst-4">
+                    📱 Prebuilt Template
+                  </button>
+                </h2>
+                <div id="c-inst-4" class="accordion-collapse collapse" aria-labelledby="h-inst-4" data-bs-parent="#acc-inst">
+                  <div class="accordion-body">
+                        Prebuilt templates are a collection of email templates that allow user to fast "beautify" theyr email (with a nod to responsive design). <br>
+                        They are also used for internal message like test email, update notification, ecc (but those are reserved, and can't be selected). <br>
+                        Usage is pretty simple:
+                        <ul>
+                          <li> choose the template that fit your need from the preview list above (click the image for a bigger view)</li>
+                          <li> grab the code and use it in the  <code>--use_template</code> arg calling the script</li>
+                          <li> some templates, to work properly, will need a set of dynamic fields as json object in the <code>--template_var</code> arg. </li>
+                          <li> attribute usage convention used is <code>*element*col</code> for <code>color</code>, <code>*element*bkcol</code> for <code>background-color</code>, <code>*element*content</code> for inner text, <code>*element*width</code> for <code>width</code></li>
+                        </ul>
+                       
+                        <b style="color:#3B71CA">The list of available templates will be constantly updated!</b>                           
+                    <!-- preview -->
+                     <hr>
+                     
+                    <div class="table-responsive">
+                      <table class="table align-middle">                      
+                        <thead>
+                          <tr>
+                            <th style="width:160px;">Preview</th>
+                            <th>Template code</th>
+                            <th>Notes</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td>
+                              <a href="#" data-bs-toggle="modal" data-bs-target="#tplPreviewModal"
+                                data-full="https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/main/assets/previewtemplate/ut_default.png" data-title="UT_default">
+                                <img src="https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/main/assets/previewtemplate/ut_default.png" alt="UT_default preview"
+                                    class="img-thumbnail">
+                              </a>
+                            </td>
+                            <td><code>UT_default</code></td>
+                            <td>
+                                Generic basic wrapper for subject (used in the header) and content (used in the body container).<br>
+                                No dynamic fields are used/required, this is the best template to receive a responsive email without do anything fancy<br>
+                                <code>--use_template "UT_default"</code>
+                            </td>
+                          </tr>
+
+                          <tr>
+                            <td>
+                              <a href="#" data-bs-toggle="modal" data-bs-target="#tplPreviewModal"
+                                data-full="https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/main/assets/previewtemplate/ut_default_adv.png" data-title="UT_default_adv">
+                                <img src="https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/main/assets/previewtemplate/ut_default_adv.png" alt="UT_default_adv preview"
+                                    class="img-thumbnail">
+                              </a>
+                            </td>
+                            <td><code>UT_default_adv</code></td>
+                            <td>Generic basic wrapper for subject and content, but with the possibility to customize style and header content. <br>
+                                Some additional arguments are required as mapped belove:
+                                <ul>
+                                  <li>bkcol</li>
+                                  <li>containerbkcol</li>
+                                  <li>containerwidth</li>
+                                  <li>headerbkcol</li>
+                                  <li>headerbkcol</li>
+                                  <li>headercol</li>
+                                  <li>headercontent</li>
+                                </ul>
+                                The preview is build from those settings:
+                                <code>--use_template "UT_default_adv" 
+                                  --template_var '{"bkcol": "#332D2D", "containerbkcol": "#FBFBFB", "containerwidth": "50%", "headerbkcol": "#3B71CA,#E4A11B", "containercol": "#DC4C64", "headercol": "#FFFFFF", "headercontent": "Template UT_default_adv"}'
+                                </code>
+                            </td>
+                          </tr>                          
+
+                        </tbody>
+                      </table>
+                    </div> <!-- end prev -->
+
+                  </div>
+                </div>
+              </div>     
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="h-inst-5">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c-inst-5" aria-expanded="false" aria-controls="c-inst-5">
+                    👨‍🔧 Build and use your Custom Template
+                  </button>
+                </h2>
+                <div id="c-inst-5" class="accordion-collapse collapse" aria-labelledby="h-inst-5" data-bs-parent="#acc-inst">
+                  <div class="accordion-body">
+                        Advanced users can build theyr own custom templates following this steps: 
+                        <ul>
+                          <li>create a file in the same sendemail execution folder</li>
+                          <li>fill up every dynamic fields you need with this sintax: <code>{myfieldname}</code></li>
+                          <li>email subject is available as <code>{subject}</code>, and the html body as <code>{html_content}</code></li>
+                          <li><b>be careful on escape single bracket on other part of the code:</b> they must be escaped with a double bracket, example: <code> .myclass { color: black;} ...</code> must be <code> .myclass {{ color: black;}} ...</code>, otherwhise the template will not be applied correctly</li>
+                          <li>pass <code>--use_template "myfile.html"</code> and <code>--template_var</code> arg with all the dynamic fields you have created in the template <code>{"myfieldname": "myvalue" ...}</code></li>
+                        </ul>
+                        Quick example: <br>
+                        <code>
+                          python3 sendemail.py --use_template "myfile.html" --template_var '{"myfieldname": "myvalue"}' ...
+                        </code><br>
+                        Missing fields will be replaced as <code>[myfield]</code>
+                        
+                        
+                  </div>
+                </div>
+              </div>                 
+              
             </div>
           </section>
 
@@ -261,7 +389,7 @@
                   <div class="accordion-body">
                     With <code>--self_update</code> the script will perform an auto update, only if a new stable version is available on Github.<br>
                     This arg can be used with <code>--notify_self_update</code>, and the script will generate a notification using the TrueNAS builtin <code>mail.send</code> command, whether it a success or fail.<br>
-                    Also to mention, everytime the <code>--self_update</code> is used, <strong>the debug mode will be enabled.</strong>
+                    Also to mention, everytime the <code>--self_update</code> is used, <strong>also the debug mode can be used!</strong>
                   </div>
                 </div>
               </div>              
@@ -395,6 +523,72 @@ python3 sendemail.py --self_update --notify_self_update</code></pre>
                   </div>
                 </div>
               </div>                              
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="h-usex-7">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c-usex-7" aria-expanded="false" aria-controls="c-usex-7">
+                    ⮞ Send method 1 - add basic wrapper template
+                  </button>
+                </h2>
+                <div id="c-usex-7" class="accordion-collapse collapse" aria-labelledby="h-usex-7" data-bs-parent="#acc-usex">
+                  <div class="accordion-body">
+                      <pre class="code mb-0"><code>#!/bin/bash
+python3 sendemail.py \
+    --subject "My subject" \
+    --to_address "myemail@gmail.com" \
+    --mail_body_html "&#60;h1&#62;Send Email Test&#60;/h1&#62;&#60;p&#62;Hello World!&#60;/p&#62;" \
+    --use_template "UT_default"</code></pre>
+                  </div>
+                </div>
+              </div>   
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="h-usex-8">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c-usex-8" aria-expanded="false" aria-controls="c-usex-8">
+                    ⮞ Send method 1 - add modified basic wrapper template
+                  </button>
+                </h2>
+                <div id="c-usex-8" class="accordion-collapse collapse" aria-labelledby="h-usex-8" data-bs-parent="#acc-usex">
+                  <div class="accordion-body">
+                      <pre class="code mb-0"><code>#!/bin/bash
+python3 sendemail.py \
+    --subject "My subject" \
+    --to_address "myemail@gmail.com" \
+    --mail_body_html "&#60;h1&#62;Send Email Test&#60;/h1&#62;&#60;p&#62;Hello World!&#60;/p&#62;" \
+    --use_template "UT_default_adv" \
+    --template_var '{
+    "bkcol": "#fff5f5", 
+    "containerbkcol": "#ffffff",
+    "containerwidth": "50%",
+    "headerbkcol": "#dc2626,#b91c1c",
+    "containercol": "#1f2937",
+    "headercol": "#000000",
+    "headercontent": "My message header"
+  }'</code></pre>
+                  </div>
+                </div>
+              </div>  
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="h-usex-9">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c-usex-9" aria-expanded="false" aria-controls="c-usex-9">
+                    ⮞ Send method 1 - with custom wrapper template
+                  </button>
+                </h2>
+                <div id="c-usex-9" class="accordion-collapse collapse" aria-labelledby="h-usex-9" data-bs-parent="#acc-usex">
+                  <div class="accordion-body">
+                      <pre class="code mb-0"><code>#!/bin/bash
+python3 sendemail.py \
+    --subject "My subject" \
+    --to_address "myemail@gmail.com" \
+    --mail_body_html "&#60;h1&#62;{fieldkey1} Test&#60;/h1&#62;&#60;p&#62;Hello World! {fieldkey2} {fieldkey3}&#60;/p&#62;" \
+    --use_template "mycustomtemplate.html" \
+    --template_var '{
+    "fieldkey1":"fieldvalue1"
+    , "fieldkey2":"fieldvalue2"
+    , "fieldkey3":"fieldvalue2"
+  }'</code></pre>
+                  </div>
+                </div>
+              </div>  
+
 
             </div>
           </section>
@@ -428,6 +622,21 @@ python3 sendemail.py --self_update --notify_self_update</code></pre>
         </aside>
       </div>
     </main>
+
+  <!-- Modal -->
+  <div class="modal fade" id="tplPreviewModal" tabindex="-1" aria-labelledby="tplPreviewLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-fullscreen">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="tplPreviewLabel">Template preview</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body text-center">
+          <img id="tplPreviewImg" src="" alt="" class="img-fluid rounded">
+        </div>
+      </div>
+    </div>
+  </div>
 
     <footer class="container py-4">
       <div class="d-flex flex-column flex-md-row align-items-center gap-2 justify-content-between">
@@ -464,6 +673,17 @@ python3 sendemail.py --self_update --notify_self_update</code></pre>
         e.preventDefault();
         window.scrollTo({ top: 0, behavior: 'smooth' });
       });     
+
+    document.getElementById('tplPreviewModal').addEventListener('show.bs.modal', function (event) {
+      const trigger = event.relatedTarget;
+      const full = trigger.getAttribute('data-full');
+      const title = trigger.getAttribute('data-title') || 'Template preview';
+      const img = this.querySelector('#tplPreviewImg');
+      const label = this.querySelector('#tplPreviewLabel');
+      img.src = full;
+      img.alt = title;
+      label.textContent = title;
+    });      
 
     </script>
   </body>

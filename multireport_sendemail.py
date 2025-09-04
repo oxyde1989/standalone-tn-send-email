@@ -11,367 +11,81 @@ from email import message_from_string
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
-##### V 1.50
+##### V 1.60
 ##### Stand alone script to send email via Truenas
-__version__ = "1.50"
+__version__ = "1.60"
 __ghlink__ = "https://github.com/oxyde1989/standalone-tn-send-email"
 __ghlink_raw__ = "https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/refs/heads/main/sendemail.py"
 __ghlink_raw_sha__ = "https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/refs/heads/main/sendemail.py.sha256"
+__email_template__ = f"https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/refs/heads/main/templates/{__version__}.json"
+__script_directory__ = os.getcwd()
 __script_path__ = os.path.abspath(__file__)
 __script_name__ = os.path.basename(__script_path__)
 
-#### EMAIL TEMPLATE 
-EMAIL_TEMPLATE = {
-    "test_message": """
-<meta name="color-scheme" content="light dark">
-<meta name="supported-color-schemes" content="light dark">
-<style>
-td.header-gradient {{
-    background:linear-gradient(135deg,#3b82f6,#6366f1);
-}}
-@media (prefers-color-scheme: dark) {{
-  table[role="presentation"] {{ background:#0b0f14 !important; }}
-  h1, p, td, a {{ color:#e5e7eb !important; }}
-  a {{ border-color:#4f46e5 !important; background:#4f46e5 !important; }}
-  td.header-gradient {{
-    background: linear-gradient(135deg, #1e3a8a, #312e81) !important;
-  }}  
-}}
-</style>
-<!-- Preheader -->
-<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">
-  SendEmail test successful.
-</div>
-
-<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background:#f5f7fb;margin:0;padding:0;">
-  <tr>
-    <td align="center" style="padding:24px 12px;">
-      <!-- Container -->
-      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width:600px;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e6e9f2;">
-        <!-- Header / Brand -->
-        <tr>
-          <td align="center" class="header-gradient" style="padding:20px 24px;">
-            <table role="presentation" width="100%">
-              <tr>
-                <td align="left" style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#eaf2ff;letter-spacing:.3px;">
-                  V {__version__}
-                </td>
-                <td align="right">
-                  <span style="display:inline-block;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.18);color:#fff;font-family:Arial,Helvetica,sans-serif;font-size:12px;">
-                    Test Mode
-                  </span>
-                </td>
-              </tr>
-            </table>
-            <h1 style="margin:14px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:26px;line-height:1.25;color:#ffffff;">
-              ✅ SendEmail Test Passed ✅
-            </h1>
-          </td>
-        </tr>
-
-        <!-- Body -->
-        <tr>
-          <td style="padding:28px 24px 8px 24px;">
-            <p style="margin:0 0 12px 0;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.65;color:#222;">
-              Glad you received the email. 🎉
-            </p>
-            <p style="margin:0 0 14px 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.7;color:#444;">
-              Also the <b>first part</b> of the <b>LogFile</b> has been attached to this message.
-            </p>
-
-            <!-- Info card -->
-            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border:1px solid #edf0f6;border-radius:12px;background:#f9fbff;">
-              <tr>
-                <td style="padding:14px 16px;">
-                  <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:#1f2937;">
-                    To see the full log grab the file from the <i>sendemail_log</i> folder
-                  </p>
-                </td>
-              </tr>
-            </table>
-
-          </td>
-        </tr>
-
-        <!-- Footer -->
-        <tr>
-          <td style="padding:14px 24px 24px 24px;">
-            <hr style="border:none;border-top:1px solid #eef1f6;margin:0 0 12px 0;">
-            <table role="presentation" width="100%">
-              <tr>
-                <td align="left" style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#6b7280;">
-                  Provided with &lt;3 by <span style="color:#111827;font-weight:600;">Oxyde</span>
-                </td>
-                <td align="right" style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#9ca3af;">
-                  <a href="{__ghlink__}/issues" style="color:#6b7280;text-decoration:none;">⚙️ Need support?</a>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-
-      </table>
-      <!-- /Container -->
-
-      <!-- Legal tiny -->
-      <p style="max-width:600px;margin:12px auto 0 auto;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.6;color:#9aa0a6;">
-        ⭐ If you like my work, consider giving it a star on <a href="{__ghlink__}" style="color:#3b82f6;text-decoration:none;">GitHub</a>.
-      </p>
-    </td>
-  </tr>
-</table>
-"""
-, "notify_update_available": """
-<style>
-td.header-gradient {{
-    background:linear-gradient(135deg,#3b82f6,#6366f1);
-}}
-</style>        
-<!-- Preheader -->
-<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">
-  SendEmail update available
-</div>
-<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background:#f5f7fb;margin:0;padding:0;">
-  <tr>
-    <td align="center" style="padding:24px 12px;">
-      <!-- Container -->
-      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width:600px;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e6e9f2;">
-        <!-- Header / Brand -->
-        <tr>
-          <td align="center" class="header-gradient" style="padding:20px 24px;">
-            <table role="presentation" width="100%">
-              <tr>
-                <td align="left" style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#eaf2ff;letter-spacing:.3px;">
-                  V {__version__}
-                </td>
-                <td align="right">
-                  <span style="display:inline-block;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.18);color:#fff;font-family:Arial,Helvetica,sans-serif;font-size:12px;">
-                    New Version <b>{f_new_version}</b>
-                  </span>
-                </td>
-              </tr>
-            </table>
-            <h1 style="margin:14px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:26px;line-height:1.25;color:#ffffff;">
-              🔥 SendEmail update available 🔥
-            </h1>
-          </td>
-        </tr>
-
-        <!-- Body -->
-        <tr>
-          <td style="padding:28px 24px 8px 24px;">
-            <p style="margin:0 0 12px 0;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.65;color:#222;">
-              You are receiving this email because SendEmail detect that your version is out-of-date.
-            </p>
-            <p style="margin:0 0 14px 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.7;color:#444;">
-              Read carefully the release notes and consider to update. Grab the latest version from <a href="{__ghlink__}" style="color:#3b82f6;text-decoration:none;">GitHub</a>
-            </p>
-          </td>
-        </tr>
-
-        <!-- Footer -->
-        <tr>
-          <td style="padding:14px 24px 24px 24px;">
-            <hr style="border:none;border-top:1px solid #eef1f6;margin:0 0 12px 0;">
-            <table role="presentation" width="100%">
-              <tr>
-                <td align="left" style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#6b7280;">
-                  Provided with &lt;3 by <span style="color:#111827;font-weight:600;">Oxyde</span>
-                </td>
-                <td align="right" style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#9ca3af;">
-                  <a href="{__ghlink__}/issues" style="color:#6b7280;text-decoration:none;">⚙️ Need support?</a>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-
-      </table>
-      <!-- /Container -->
-
-      <!-- Legal tiny -->
-      <p style="max-width:600px;margin:12px auto 0 auto;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.6;color:#9aa0a6;">
-        ⭐ If you like my work, consider giving it a star on <a href="{__ghlink__}" style="color:#3b82f6;text-decoration:none;">GitHub</a>.
-      </p>
-    </td>
-  </tr>
-</table>
-        
-"""   
-, "notify_update_done": """
-<style>
-td.header-gradient {{
-    background:linear-gradient(135deg,#3b82f6,#6366f1);
-}}
-</style>        
-<!-- Preheader -->
-<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">
-  SendEmail update applied
-</div>
-<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background:#f5f7fb;margin:0;padding:0;">
-  <tr>
-    <td align="center" style="padding:24px 12px;">
-      <!-- Container -->
-      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width:600px;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e6e9f2;">
-        <!-- Header / Brand -->
-        <tr>
-          <td align="center" class="header-gradient" style="padding:20px 24px;">
-            <table role="presentation" width="100%">
-              <tr>
-                <td align="left" style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#eaf2ff;letter-spacing:.3px;">
-                  V {new_version}
-                </td>
-                <td align="right">
-                  <span style="display:inline-block;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.18);color:#fff;font-family:Arial,Helvetica,sans-serif;font-size:12px;">
-                    Old {__version__} has been replaced
-                  </span>
-                </td>
-              </tr>
-            </table>
-            <h1 style="margin:14px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:26px;line-height:1.25;color:#ffffff;">
-              🛠 SendEmail update has been applied 🛠
-            </h1>
-          </td>
-        </tr>
-
-        <!-- Body -->
-        <tr>
-          <td style="padding:28px 24px 8px 24px;">
-            <p style="margin:0 0 12px 0;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.65;color:#222;">
-              This notification has been sent because SendEmail successfully applied an update.
-            </p>
-            <p style="margin:0 0 14px 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.7;color:#444;">
-              If you face some problem, the backup of the previous version is available in the <i>sendemail_update</i> folder, instead you can manually delete it if no more needed.
-              <br>
-
-            </p>
-          </td>
-        </tr>
-
-        <!-- Footer -->
-        <tr>
-          <td style="padding:14px 24px 24px 24px;">
-            <hr style="border:none;border-top:1px solid #eef1f6;margin:0 0 12px 0;">
-            <table role="presentation" width="100%">
-              <tr>
-                <td align="left" style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#6b7280;">
-                  Provided with &lt;3 by <span style="color:#111827;font-weight:600;">Oxyde</span>
-                </td>
-                <td align="right" style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#9ca3af;">
-                  <a href="{__ghlink__}/issues" style="color:#6b7280;text-decoration:none;">⚙️ Need support?</a>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-
-      </table>
-      <!-- /Container -->
-
-      <!-- Legal tiny -->
-      <p style="max-width:600px;margin:12px auto 0 auto;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.6;color:#9aa0a6;">
-        ⭐ If you like my work, consider giving it a star on <a href="{__ghlink__}" style="color:#3b82f6;text-decoration:none;">GitHub</a>.
-      </p>
-    </td>
-  </tr>
-</table>
-        
-"""            
-, "notify_update_fail": """
-<style>
-td.header-gradient {{
-    background:linear-gradient(135deg,#3b82f6,#6366f1);
-}}
-</style>        
-<!-- Preheader -->
-<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">
-  SendEmail update failed
-</div>
-<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background:#f5f7fb;margin:0;padding:0;">
-  <tr>
-    <td align="center" style="padding:24px 12px;">
-      <!-- Container -->
-      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width:600px;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e6e9f2;">
-        <!-- Header / Brand -->
-        <tr>
-          <td align="center" class="header-gradient" style="padding:20px 24px;">
-            <table role="presentation" width="100%">
-              <tr>
-                <td align="left" style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#eaf2ff;letter-spacing:.3px;">
-                  V {__version__}
-                </td>
-                <td align="right">
-                  <span style="display:inline-block;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.18);color:#fff;font-family:Arial,Helvetica,sans-serif;font-size:12px;">
-                    {new_version} install fail
-                  </span>
-                </td>
-              </tr>
-            </table>
-            <h1 style="margin:14px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:26px;line-height:1.25;color:#ffffff;">
-              🛠 SendEmail update has failed 🛠
-            </h1>
-          </td>
-        </tr>
-
-        <!-- Body -->
-        <tr>
-          <td style="padding:28px 24px 8px 24px;">
-            <p style="margin:0 0 12px 0;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.65;color:#222;">
-              This notification has been sent because SendEmail fail to apply an update.
-            </p>
-            <p style="margin:0 0 14px 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.7;color:#444;">
-              Please try again or apply the update manually. Also consider to check into the <i>sendemail_log</i> folder the reason of the error
-              <br>
-
-            </p>
-          </td>
-        </tr>
-
-        <!-- Footer -->
-        <tr>
-          <td style="padding:14px 24px 24px 24px;">
-            <hr style="border:none;border-top:1px solid #eef1f6;margin:0 0 12px 0;">
-            <table role="presentation" width="100%">
-              <tr>
-                <td align="left" style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#6b7280;">
-                  Provided with &lt;3 by <span style="color:#111827;font-weight:600;">Oxyde</span>
-                </td>
-                <td align="right" style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#9ca3af;">
-                  <a href="{__ghlink__}/issues" style="color:#6b7280;text-decoration:none;">⚙️ Need support?</a>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-
-      </table>
-      <!-- /Container -->
-
-      <!-- Legal tiny -->
-      <p style="max-width:600px;margin:12px auto 0 auto;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.6;color:#9aa0a6;">
-        ⭐ If you like my work, consider giving it a star on <a href="{__ghlink__}" style="color:#3b82f6;text-decoration:none;">GitHub</a>.
-      </p>
-    </td>
-  </tr>
-</table>
-        
-"""    
-, "notify_update_available_text": "You are receiving this email because SendEmail detect that your version is out-of-date. \n\n{__version__} --> {f_new_version}"  
-, "notify_update_done_text": "This notification has been sent because SendEmail successfully applied an update. \n\nYou are now on vesion {new_version}"
-, "notify_update_fail_text": "This notification has been sent because SendEmail fail to apply the {new_version} update."
-}
+class HandleMissingVar(dict):
+    def __missing__(self, key):
+        return "[" + key + "]"
 
 def render_template(name, **ctx):
     """
-        this function will help to format out the above email templates, to keep the code clean as possible. Now switch correctly from core and scale
-    """     
+        this function will help to format out the email templates get by repo, to keep the code clean as possible. Now switch correctly from core and scale
+    """
     try:
-        _name = name
-        if not os.path.exists("/usr/bin/midclt"):
-            _name = f"{name}_text" 
-        return EMAIL_TEMPLATE[_name].format(**ctx)
+        append_log("Entering template render. Scale/Core switch needed")
+        _name = name if os.path.exists("/usr/bin/midclt") else f"{name}_text"
+        append_log(f"search for {name} template on REPO")
+        reqtempl = urllib.request.Request(__email_template__, headers={"User-Agent": "tn-send-email"})
+        append_log("reading template")
+        with urllib.request.urlopen(reqtempl, timeout=5) as resptempl:
+            template_list = json.loads(resptempl.read().decode("utf-8"))
+            append_log("templates loaded")
+        return template_list[_name].format_map(HandleMissingVar(**ctx))
     except Exception as e:
         return f"[ERROR] rendering template '{name}': {e}"
+      
+def add_user_template(u_template, u_subject, u_content, u_var=None):
+    AVAILABLE_TEMPLATE = [
+        "UT_default"
+        , "UT_default_adv"
+    ]
+    
+    u_template_file = os.path.join(__script_directory__, u_template)
+    if not u_template:
+      append_log("no template provided")
+      return u_content
+    elif u_template in AVAILABLE_TEMPLATE or os.path.exists(u_template_file):
+        append_log(f"template {u_template} is valid")
+        user_vars = {}
+        append_log("try building user custom fields")
+        if u_var:
+            try:
+                parsed = json.loads(u_var)
+                if isinstance(parsed, dict):
+                    user_vars = parsed
+                else:
+                    append_log("var provided is not a JSON object — ignored")
+            except Exception as e:
+                append_log(f"JSON error: {e} retrieving user var")
+        completevar = {**user_vars, "subject": u_subject, "html_content": u_content}
+        append_log("switch from builtin template or custom file template")        
+        if u_template in AVAILABLE_TEMPLATE:  
+            append_log("builtin template provided") 
+            try:
+                return render_template(u_template, **completevar)
+            except Exception as e:
+                append_log(f"template '{u_template}' error: {e} — fallback to raw content")
+                return u_content   
+        elif os.path.exists(u_template_file):
+            try:
+                with open(u_template_file, 'r') as g:
+                    u_template_file_content = g.read()    
+                return u_template_file_content.format_map(HandleMissingVar(**completevar))
+            except Exception as e:
+                append_log(f"custom template '{u_template}' error: {e} — fallback to raw content")
+                return u_content               
+    else:
+        append_log(f"template {u_template} not applied")
+        return u_content      
     
 def quick_tn_builtin_sendemail(tn_subject, tn_text):
     tn_payload_dict = {"subject": tn_subject, "html": tn_text}
@@ -410,7 +124,7 @@ class PerformUpdate:
         this class will handle all the update process of the script. It rely on CheckForUpdate class and on the built in truenas send email to avoid conflicts
     """     
     def __init__(self):
-        self.staging_dir = os.path.join(os.getcwd(), "sendemail_update")
+        self.staging_dir = os.path.join(__script_directory__, "sendemail_update")
         self.new_version = None
         self.backup_path = None
         append_log(f"### Script Version: {__version__} ###")
@@ -523,7 +237,7 @@ class PerformUpdate:
             
     def post_update_send_notify(self):    
         append_log("preparing email to notify the update") 
-        f_subject = f"🔥TN SendEmail {self.new_version} installed"
+        f_subject = f"🟢TN SendEmail {self.new_version} installed"
         f_text = self.get_postupdate_message()
         try:
             quick_tn_builtin_sendemail(f_subject, f_text)   
@@ -532,7 +246,7 @@ class PerformUpdate:
              
     def post_update_fail_send_notify(self):    
         append_log("preparing email to notify the fail update") 
-        f_subject = f"🔥TN SendEmail {self.new_version} install FAIL"
+        f_subject = f"🔴TN SendEmail {self.new_version} install FAIL"
         f_text = self.get_postupdate_fail_message()
         try:
             quick_tn_builtin_sendemail(f_subject, f_text)   
@@ -551,7 +265,7 @@ class NotifyForUpdate:
         try:
             f_new_version, f_update_available = CheckForUpdate().parse_as_resp()
             if f_update_available:
-                f_subject = f"🔥TN SendEmail {f_new_version} available"
+                f_subject = f"ℹ️TN SendEmail {f_new_version} available"
                 f_text = get_update_message()
                 try:
                     quick_tn_builtin_sendemail(f_subject, f_text)   
@@ -577,8 +291,8 @@ def validate_arguments(args):
             print(f"Error: arg '{param_name}' contains CRLF char, not allowed")
             sys.exit(1)        
     if args.debug_enabled:
-        if not os.access(os.getcwd(), os.W_OK):
-            print(f"Current user doesn't have permission in the execution folder: {os.getcwd()}")
+        if not os.access(__script_directory__, os.W_OK):
+            print(f"Current user doesn't have permission in the execution folder: {__script_directory__}")
             sys.exit(1)     
         sfw = is_secure_directory()
         if sfw:
@@ -604,7 +318,7 @@ def is_secure_directory(directory_to_check=None):
         return ""
     else:    
         try:
-            directory_to_check = directory_to_check or os.getcwd()
+            directory_to_check = directory_to_check or __script_directory__
             stat_info  = os.stat(directory_to_check)
             append_message = ""
             if stat_info .st_uid != os.getuid():
@@ -628,7 +342,7 @@ def is_secure_directory_forupdate(__script_path__, __version__, directory_to_che
         
     directory = directory_to_check
     if not directory:
-        directory = os.path.dirname(os.path.abspath(__script_path__)) or os.getcwd()
+        directory = os.path.dirname(os.path.abspath(__script_path__)) or __script_directory__
     try:
         st = os.stat(directory, follow_symlinks=True)
     except Exception as e:
@@ -653,7 +367,7 @@ def create_log_file():
         return None, 0
     else:
         try:    
-            log_dir = os.path.join(os.getcwd(), 'sendemail_log')
+            log_dir = os.path.join(__script_directory__, 'sendemail_log')
             
             if os.path.islink(log_dir):
                 print("Something wrong is happening here: the sendemail_log folder is a symlink")
@@ -919,7 +633,7 @@ def get_fromname_fromemail(options):
 def get_test_message():
     return render_template("test_message", __version__=__version__,__ghlink__=__ghlink__) 
                    
-def send_email(subject, to_address, mail_body_html, attachment_files, email_config, provider, bulk_email):
+def send_email(subject, to_address, mail_body_html, attachment_files, email_config, provider, bulk_email, user_template):
     """
     Function to send an email via SMTP or Gmail OAuth based on the provider available
     """
@@ -956,6 +670,8 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                 append_log("mail hmtl provided")
                 append_log("parsing html content") 
                 html_content = load_html_content(mail_body_html)
+                append_log("trying apply a template") 
+                html_content = add_user_template(user_template, subject, html_content, args.template_var)                
 
                 append_log("start parsing headers")
                 msg = MIMEMultipart()
@@ -1114,7 +830,9 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                 msg['subject'] = subject
                         
                 append_log("parsing html content") 
-                html_content = load_html_content(mail_body_html)            
+                html_content = load_html_content(mail_body_html) 
+                append_log("trying apply a template") 
+                html_content = add_user_template(user_template, subject, html_content, args.template_var)                            
                 msg.attach(MIMEText(html_content, 'html'))
                 
                 append_log("check for attachements...") 
@@ -1156,7 +874,9 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                 append_log("mail hmtl provided")
                 append_log("parsing html content") 
                 html_content = load_html_content(mail_body_html)
-
+                append_log("trying apply a template") 
+                html_content = add_user_template(user_template, subject, html_content, args.template_var) 
+                
                 append_log("start parsing headers")
                 msg = MIMEMultipart()
                 append_log("parsing data from config and override options")                                 
@@ -1276,7 +996,9 @@ if __name__ == "__main__":
     parser.add_argument("--notify_update", help="OPTIONAL use to let the script to only check update availability, and notify the context user. Use in a cronjob with a weekly check", action='store_true')   
     parser.add_argument("--check_update", help="OPTIONAL use to let the script to only check update availability", action='store_true')              
     parser.add_argument("--self_update", help="OPTIONAL use to let the script to check update availability and perform an update when needed", action='store_true')      
-    parser.add_argument("--notify_self_update", help="OPTIONAL use to let the script to send a notification if a self update is performed", action='store_true')     
+    parser.add_argument("--notify_self_update", help="OPTIONAL use to let the script to send a notification if a self update is performed", action='store_true') 
+    parser.add_argument("--use_template", help="OPTIONAL specify a template code to wrap the email. Not available in bulk path")    
+    parser.add_argument("--template_var", help="OPTIONAL a json object containing all the dynamic fields to be used in the template")
     
     args = parser.parse_args()
     
@@ -1293,7 +1015,6 @@ if __name__ == "__main__":
         _, precheck = CheckForUpdate().parse_as_resp()
         if precheck:
             is_secure_directory_forupdate(__script_path__, __version__)           
-            args.debug_enabled = True
             log_file, log_file_count = create_log_file()
             PerformUpdate().apply_update()               
         else:
@@ -1347,7 +1068,7 @@ if __name__ == "__main__":
         else:
             process_output(True, "Can't switch provider", 1)
             
-        attachment_count_valid = send_email(args.subject, args.to_address, args.mail_body_html, args.attachment_files, email_config, provider, args.mail_bulk)
+        attachment_count_valid = send_email(args.subject, args.to_address, args.mail_body_html, args.attachment_files, email_config, provider, args.mail_bulk, args.use_template)
         
         if attachment_count_valid is None:
             attachment_count_valid = 0
