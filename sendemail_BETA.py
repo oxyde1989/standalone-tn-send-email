@@ -97,6 +97,7 @@ def add_user_template(u_template, u_subject, u_content, u_var=None):
     AVAILABLE_TEMPLATE = [
         "UT_default"
         , "UT_default_adv"
+        , "UT_table_4col"        
         , "UT_table_5col"
     ]
     
