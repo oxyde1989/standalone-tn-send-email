@@ -39,7 +39,10 @@ def render_template(name, **ctx):
         with urllib.request.urlopen(reqtempl, timeout=5) as resptempl:
             template_list = json.loads(resptempl.read().decode("utf-8"))
             append_log("templates loaded")
-        return template_list[_name].format_map(HandleMissingVar(**ctx))
+            _tmp = template_list[_name]
+            append_log("applying iteration")
+            _tmp = _apply_microloops(_tmp, ctx)
+        return _tmp.format_map(HandleMissingVar(**ctx))
     except Exception as e:
         append_log(f"[ERROR] rendering template '{name}': {e}")
         return f"🔴 [ERROR] Sorry, an error occured rendering template '{name}'. 🔴"
@@ -121,8 +124,8 @@ def add_user_template(u_template, u_subject, u_content, u_var=None):
         if u_template in AVAILABLE_TEMPLATE:  
             append_log("builtin template provided") 
             try:
-                u_template_file_content = _apply_microloops(u_template, completevar) 
-                return render_template(u_template_file_content, **completevar), u_subject
+                u_template_file_content = render_template(u_template, **completevar)
+                return u_template_file_content, u_subject
             except Exception as e:
                 append_log(f"template '{u_template}' error: {e} — fallback to raw content")
                 return u_content, u_subject   
