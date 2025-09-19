@@ -53,7 +53,7 @@
       <div class="container">
         <span  class="navbar-brand d-flex align-items-center gap-2" href="#">
           <span class="fs-5">📬</span>
-          <strong>Standalone SendEmail V1.60</strong>
+          <strong>Standalone SendEmail V1.70</strong>
         </span >
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav" aria-controls="nav" aria-expanded="false" aria-label="Toggle navigation">
           <span class="navbar-toggler-icon"></span>
@@ -83,7 +83,7 @@
 
     <main class="container my-5">
       <div class="row g-4">
-        <div class="col-lg-8">
+        <div class="col-lg-10">
 
           <section id="introduction" class="section-spacer mb-4">
             <h2 class="h3 mb-3">About the project</h2>
@@ -250,7 +250,7 @@
                         <thead>
                           <tr>
                             <th style="width:160px;">Preview</th>
-                            <th>Template code</th>
+                            <th>Code</th>
                             <th>Notes</th>
                           </tr>
                         </thead>
@@ -266,7 +266,8 @@
                             <td><code>UT_default</code></td>
                             <td>
                                 Generic basic wrapper for subject (used in the header) and content (used in the body container).<br>
-                                No dynamic fields are used/required, this is the best template to receive a responsive email without do anything fancy<br>
+                                No dynamic fields are used/required, this is the best template to receive a responsive email without do anything fancy
+                                <hr>
                                 <code>--use_template "UT_default"</code>
                             </td>
                           </tr>
@@ -292,12 +293,54 @@
                                   <li>headercontent</li>
                                 </ul>
                                 The preview is build from those settings:
+                                <hr>
                                 <code>--use_template "UT_default_adv" 
                                   --template_var '{"bkcol": "#332D2D", "containerbkcol": "#FBFBFB", "containerwidth": "50%", "headerbkcol": "#3B71CA,#E4A11B", "containercol": "#DC4C64", "headercol": "#FFFFFF", "headercontent": "Template UT_default_adv"}'
                                 </code>
                             </td>
-                          </tr>                          
+                          </tr>  
+                          
+                          <tr>
+                            <td>
+                              <a href="#" data-bs-toggle="modal" data-bs-target="#tplPreviewModal"
+                                data-full="https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/main/assets/previewtemplate/ut_table_4col.png" data-title="ut_table_4col">
+                                <img src="https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/main/assets/previewtemplate/ut_table_4col.png" alt="ut_table_4col preview"
+                                    class="img-thumbnail">
+                              </a>
+                            </td>
+                            <td><code>ut_table_4col</code></td>
+                            <td>
+                                Generic basic wrapper to build a dynamic 4 column table, with subject on top and html_content on bottom.<br>
+                                Access the col name with <code>col1 col2 col3 col4</code>, and iterate every line with an array named <code>containers</code> 
+                                <hr>
+                                <code>--use_template "ut_table_4col"
+                                  --template_var '{"col1": "col1 name", "col2": "col2 name", "col3": "col3 name", "col4": "col4 name", "containers": [ {"col1": "col1 value", "col2": "col2 value", "col3": "col3 value", "col4": "col4 value"}, {"col1": "col1 value", "col2": "col2 value", "col3": "col3 value", "col4": "col4 value"}, ... ]}'
 
+
+                                </code>
+                            </td>
+                          </tr>
+                          
+                          <tr>
+                            <td>
+                              <a href="#" data-bs-toggle="modal" data-bs-target="#tplPreviewModal"
+                                data-full="https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/main/assets/previewtemplate/ut_table_5col.png" data-title="ut_table_5col">
+                                <img src="https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/main/assets/previewtemplate/ut_table_5col.png" alt="ut_table_5col preview"
+                                    class="img-thumbnail">
+                              </a>
+                            </td>
+                            <td><code>ut_table_5col</code></td>
+                            <td>
+                                Generic basic wrapper to build a dynamic 5 column table, with subject on top and html_content on bottom.<br>
+                                Access the col name with <code>col1 col2 col3 col4 col5</code>, and iterate every line with an array named <code>containers</code> 
+                                <hr>
+                                <code>--use_template "ut_table_5col"
+                                  --template_var '{"col1": "col1 name", "col2": "col2 name", "col3": "col3 name", "col4": "col4 name", "col5": "col5 name", "containers": [ {"col1": "col1 value", "col2": "col2 value", "col3": "col3 value", "col4": "col4 value", "col5": "col5 value"}, ... ]}'
+
+
+                                </code>
+                            </td>
+                          </tr>
                         </tbody>
                       </table>
                     </div> <!-- end prev -->
@@ -322,15 +365,30 @@
                           <li>pass <code>--use_template "myfile.html"</code> and <code>--template_var</code> arg with all the dynamic fields you have created in the template <code>{"myfieldname": "myvalue" ...}</code></li>
                         </ul>
                         Quick example: <br>
-                        <code>
-                          python3 sendemail.py --use_template "myfile.html" --template_var '{"myfieldname": "myvalue"}' ...
-                        </code><br>
-                        Missing fields will be replaced as <code>[myfield]</code>
-                        
-                        
+                        <pre class="code mb-0"><code>python3 sendemail.py --use_template "myfile.html" --template_var '{"myfieldname": "myvalue", ...}' ...</code></pre>
+                        Missing fields will be replaced as <code>[myfield]</code>                          
                   </div>
                 </div>
-              </div>                 
+              </div>    
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="h-inst-6">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c-inst-6" aria-expanded="false" aria-controls="c-inst-6">
+                    📈 How iterate items in templates
+                  </button>
+                </h2>
+                <div id="c-inst-6" class="accordion-collapse collapse" aria-labelledby="h-inst-6" data-bs-parent="#acc-inst">
+                  <div class="accordion-body">
+                      <code>--template_var</code> is also capable to handle array of json object, for example 
+                      <pre class="code mb-0"><code>{"myfieldname": "myvalue", "myarray": [ {"a_var1": "a_var1_value", "a_var2": "a_var2_value"}, {...}] ...}</code></pre>
+                      if accompanied by this convention in the template (custom or prebuilt):
+                      <pre class="code mb-0"><code>&lt;!-- #for var in myarray --&gt;  &lt;li&gt;{var[a_var1]} — {var[a_var2]}&lt;/li&gt; &lt;!-- #endfor --&gt; </code></pre>
+                      Every array element will be iterate and the var will be replaced accordingly!<br>
+                      Note that <i>myarray</i> must coincide with the name of the array to work, and same for the json object property!<br>
+                      Names are totally customizable, just respect the "html comment convention"!<br>
+                      This trick will be very helpful to build dynamic table easily and fast: use all the array you want, but only one iteration will for once will be applied, <i>nested json arrays are not supported</i>.                     
+                  </div>
+                </div>
+              </div>                              
               
             </div>
           </section>
@@ -354,7 +412,7 @@
               <div class="accordion-item">
                 <h2 class="accordion-header" id="h-faq-1">
                   <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c-faq-1" aria-expanded="false" aria-controls="c-faq-1">
-                    ⮞ Update Notification
+                    📩 Update Notification
                   </button>
                 </h2>
                 <div id="c-faq-1" class="accordion-collapse collapse" aria-labelledby="h-faq-1" data-bs-parent="#acc-faq">
@@ -368,7 +426,7 @@
               <div class="accordion-item">
                 <h2 class="accordion-header" id="h-faq-2">
                   <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c-faq-2" aria-expanded="false" aria-controls="c-faq-2">
-                    ⮞ Update Checking
+                    🧲 Update Checking
                   </button>
                 </h2>
                 <div id="c-faq-2" class="accordion-collapse collapse" aria-labelledby="h-faq-2" data-bs-parent="#acc-faq">
@@ -382,7 +440,7 @@
               <div class="accordion-item">
                 <h2 class="accordion-header" id="h-faq-3">
                   <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c-faq-3" aria-expanded="false" aria-controls="c-faq-3">
-                    ⮞ Update Self
+                    🛠 Update Self
                   </button>
                 </h2>
                 <div id="c-faq-3" class="accordion-collapse collapse" aria-labelledby="h-faq-3" data-bs-parent="#acc-faq">
@@ -402,7 +460,7 @@
               <div class="accordion-item">
                 <h2 class="accordion-header" id="h-usex-0">
                   <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c-usex-0" aria-expanded="false" aria-controls="c-usex-0">
-                    ⮞ TestMode: quick send testing
+                    🔘 TestMode: quick send testing
                   </button>
                 </h2>
                 <div id="c-usex-0" class="accordion-collapse collapse" aria-labelledby="h-usex-0" data-bs-parent="#acc-usex">
@@ -415,7 +473,7 @@ python3 sendemail.py --test_mode</code> </pre>
               <div class="accordion-item">
                 <h2 class="accordion-header" id="h-usex-1">
                   <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c-usex-1" aria-expanded="false" aria-controls="c-usex-1">
-                    ⮞ Send method 1 - filling basic args 
+                    🔘 Send method 1 - filling basic args 
                   </button>
                 </h2>
                 <div id="c-usex-1" class="accordion-collapse collapse" aria-labelledby="h-usex-1" data-bs-parent="#acc-usex">
@@ -443,7 +501,7 @@ python3 sendemail.py \
               <div class="accordion-item">
                 <h2 class="accordion-header" id="h-usex-2">
                   <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c-usex-2" aria-expanded="false" aria-controls="c-usex-2">
-                    ⮞ Send method 2 - using bulk email
+                    🔘 Send method 2 - using bulk email
                   </button>
                 </h2>
                 <div id="c-usex-2" class="accordion-collapse collapse" aria-labelledby="h-usex-2" data-bs-parent="#acc-usex">
@@ -457,7 +515,7 @@ python3 sendemail.py --mail_bulk "$mail_bulk" </code></pre>
               <div class="accordion-item">
                 <h2 class="accordion-header" id="h-usex-3">
                   <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c-usex-3" aria-expanded="false" aria-controls="c-usex-3">
-                    ⮞ Send method 1 - Using override
+                    🔘 Send method 1 - Using override
                   </button>
                 </h2>
                 <div id="c-usex-3" class="accordion-collapse collapse" aria-labelledby="h-usex-3" data-bs-parent="#acc-usex">
@@ -479,7 +537,7 @@ python3 sendemail.py \
               <div class="accordion-item">
                 <h2 class="accordion-header" id="h-usex-4">
                   <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c-usex-4" aria-expanded="false" aria-controls="c-usex-4">
-                    ⮞ Send method 1 - activating debug
+                    🔘 Send method 1 - activating debug
                   </button>
                 </h2>
                 <div id="c-usex-4" class="accordion-collapse collapse" aria-labelledby="h-usex-4" data-bs-parent="#acc-usex">
@@ -500,7 +558,7 @@ python3 sendemail.py \
               <div class="accordion-item">
                 <h2 class="accordion-header" id="h-usex-5">
                   <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c-usex-5" aria-expanded="false" aria-controls="c-usex-5">
-                    ⮞ Update - get notification
+                    🔘 Update - get notification
                   </button>
                 </h2>
                 <div id="c-usex-5" class="accordion-collapse collapse" aria-labelledby="h-usex-5" data-bs-parent="#acc-usex">
@@ -513,7 +571,7 @@ python3 sendemail.py --notify_update</code></pre>
               <div class="accordion-item">
                 <h2 class="accordion-header" id="h-usex-6">
                   <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c-usex-6" aria-expanded="false" aria-controls="c-usex-6">
-                    ⮞ Update - self update with notification
+                    🔘 Update - self update with notification
                   </button>
                 </h2>
                 <div id="c-usex-6" class="accordion-collapse collapse" aria-labelledby="h-usex-6" data-bs-parent="#acc-usex">
@@ -526,7 +584,7 @@ python3 sendemail.py --self_update --notify_self_update</code></pre>
               <div class="accordion-item">
                 <h2 class="accordion-header" id="h-usex-7">
                   <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c-usex-7" aria-expanded="false" aria-controls="c-usex-7">
-                    ⮞ Send method 1 - add basic wrapper template
+                    🔘 Send method 1 - add basic wrapper template
                   </button>
                 </h2>
                 <div id="c-usex-7" class="accordion-collapse collapse" aria-labelledby="h-usex-7" data-bs-parent="#acc-usex">
@@ -543,7 +601,7 @@ python3 sendemail.py \
               <div class="accordion-item">
                 <h2 class="accordion-header" id="h-usex-8">
                   <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c-usex-8" aria-expanded="false" aria-controls="c-usex-8">
-                    ⮞ Send method 1 - add modified basic wrapper template
+                    🔘 Send method 1 - add modified basic wrapper template
                   </button>
                 </h2>
                 <div id="c-usex-8" class="accordion-collapse collapse" aria-labelledby="h-usex-8" data-bs-parent="#acc-usex">
@@ -569,7 +627,7 @@ python3 sendemail.py \
               <div class="accordion-item">
                 <h2 class="accordion-header" id="h-usex-9">
                   <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c-usex-9" aria-expanded="false" aria-controls="c-usex-9">
-                    ⮞ Send method 1 - with custom wrapper template
+                    🔘 Send method 1 - with custom wrapper template
                   </button>
                 </h2>
                 <div id="c-usex-9" class="accordion-collapse collapse" aria-labelledby="h-usex-9" data-bs-parent="#acc-usex">
@@ -589,14 +647,137 @@ python3 sendemail.py \
                 </div>
               </div>  
 
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="h-usex-10">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c-usex-10" aria-expanded="false" aria-controls="c-usex-10">
+                    🔘 Send method 1 - with custom wrapper template and iterate items
+                  </button>
+                </h2>
+                <div id="c-usex-10" class="accordion-collapse collapse" aria-labelledby="h-usex-10" data-bs-parent="#acc-usex">
+                  <div class="accordion-body">
+                      <pre class="code mb-0"><code>#!/bin/bash
+python3 sendemail.py \
+    --subject "My subject {fieldkey3}" \
+    --to_address "myemail@gmail.com" \
+    --mail_body_html "&#60;h1&#62;{fieldkey1} Test&#60;/h1&#62;&#60;p&#62;Hello World! {fieldkey2} {fieldkey3}&#60;/p&#62;" \
+    --use_template "mycustomtemplatewithiterate.html" \
+    --template_var '{
+    "fieldkey1":"fieldvalue1"
+    , "fieldkey2":"fieldvalue2"
+    , "fieldkey3":"fieldvalue2"
+    , "pluto": [
+      {"fldv":"1", "fldv2":"2"}
+      , {"fldv":"3", "fldv2":"4"}
+    ]    
+  }'</code>
+  <code>
+    #mycustomtemplatewithiterate.html
+    &lt;h1&gt;{fieldkey1} - {fieldkey2}&lt;/h1&gt;
+    &lt;ul&gt;
+  &lt;!-- #for pippo in pluto --&gt;
+    &lt;li&gt;{pippo[fldv]} — {pippo[fldv2]}&lt;/li&gt;
+  &lt;!-- #endfor --&gt;
+    &lt;/ul&gt;
+  </code>
+</pre>
+                  </div>
+                </div>
+              </div>                
 
             </div>
           </section>
 
+          <section id="usefullsnipplet" class="section-spacer mb-5">
+            <h2 class="h3 mb-3">Usefull snipplet</h2>
+            <div class="accordion" id="acc-usef">
+
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="h-usef-0">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c-usef-0" aria-expanded="false" aria-controls="c-usef-0">
+                    🔷 Get an essential TN App Report
+                  </button>
+                </h2>
+                <div id="c-usef-0" class="accordion-collapse collapse" aria-labelledby="h-usef-0" data-bs-parent="#acc-usef">
+                  <div class="accordion-body">
+                      <pre class="code mb-0"><code>#!/bin/bash
+python3 sendemail_BETA.py \
+    --subject &quot;🔷 App Report&quot; \
+    --to_address &quot;replaceme@email.com&quot; \
+    --mail_body_html &quot;&amp;nbsp;&quot; \
+    --use_template &quot;UT_table_5col&quot; \
+--template_var &quot;$(
+midclt call app.query | jq -c &#39;{ 
+  col1:&quot;&amp;nbsp;&quot;, col2:&quot;App&quot;, col3:&quot;State&quot;, col4:&quot;Version&quot;, col5:&quot;Upgrade Available&quot;,
+  containers: map({
+    col1: ( 
+      (.metadata.icon // &quot;&quot;) 
+      | if length&gt;0 
+        then (&quot;&lt;img src=\&quot;&quot; + . + &quot;\&quot; alt=\&quot;icon\&quot; style=\&quot;width:30px;vertical-align:middle\&quot;&gt;&quot;)
+        else &quot;-&quot; 
+        end
+      ),
+    col2: (.name // &quot;-&quot;),
+    col3: (.state // &quot;-&quot;),
+    col4: (.human_version // &quot;-&quot;),
+    col5: (.upgrade_available // &quot;-&quot;)
+  })
+}&#39;
+
+)
+
+</code> </pre>
+                  </div>
+                </div>
+              </div>       
+
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="h-usef-1">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c-usef-1" aria-expanded="false" aria-controls="c-usef-1">
+                    🐳 Get a detailed docker containers report
+                  </button>
+                </h2>
+                <div id="c-usef-1" class="accordion-collapse collapse" aria-labelledby="h-usef-1" data-bs-parent="#acc-usef">
+                  <div class="accordion-body">
+                      <pre class="code mb-0"><code>#!/bin/bash
+python3 sendemail_BETA.py \
+    --subject &quot;🐳 Docker Container Report&quot; \
+    --to_address &quot;replaceme@email.com&quot; \
+    --mail_body_html &quot;&amp;nbsp;&quot; \
+    --use_template &quot;UT_table_5col&quot; \
+    --template_var &quot;$(docker ps --format '{{json .}}' \
+| jq -cs '{col1:&quot;Name&quot;,col2:&quot;Image&quot;,col3:&quot;Status&quot;,col4:&quot;Ports&quot;,col5:&quot;ID&quot;,containers: map({col1:.Names,col2:.Image,col3:.Status,col4:.Ports,col5:.ID}) }')
+
+</code> </pre>
+                  </div>
+                </div>
+              </div>  
+              
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="h-usef-2">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c-usef-2" aria-expanded="false" aria-controls="c-usef-2">
+                    🔋 Get a detailed UPS report
+                  </button>
+                </h2>
+                <div id="c-usef-2" class="accordion-collapse collapse" aria-labelledby="h-usef-2" data-bs-parent="#acc-usef">
+                  <div class="accordion-body">
+                      <pre class="code mb-0"><code>#!/bin/bash
+python3 sendemail_BETA.py \
+    --subject &quot;🔋 UPS Report&quot; \
+    --to_address &quot;replaceme@email.com&quot; \
+    --mail_body_html &quot;$(upsc *replaceme* | sed 's/$/&lt;br&gt;/')&quot; \
+    --use_template &quot;UT_default&quot;
+</code> </pre>
+                  </div>
+                </div>
+              </div>                 
+
+            </div>
+          </section>          
+
         </div>
 
 
-        <aside class="col-lg-4">
+        <aside class="col-lg-2">
           <div class="position-sticky" style="top: 5.5rem;">
             <div class="card mb-3">
               <div class="card-body">
@@ -606,6 +787,7 @@ python3 sendemail.py \
                   <li><a href="#advanced" class="link-body-emphasis">Advanced usage methods</a></li>
                   <li><a href="#updates" class="link-body-emphasis">Managing updates</a></li>
                   <li><a href="#usageexample" class="link-body-emphasis">Usage example</a></li>
+                  <li><a href="#usefullsnipplet" class="link-body-emphasis">Usefull snipplet</a></li>
                 </ol>
               </div>
             </div>

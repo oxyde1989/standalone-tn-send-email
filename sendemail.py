@@ -11,9 +11,9 @@ from email import message_from_string
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
-##### V 1.60
+##### V 1.70
 ##### Stand alone script to send email via Truenas
-__version__ = "1.60"
+__version__ = "1.70"
 __ghlink__ = "https://github.com/oxyde1989/standalone-tn-send-email"
 __ghlink_raw__ = "https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/refs/heads/main/sendemail.py"
 __ghlink_raw_sha__ = "https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/refs/heads/main/sendemail.py.sha256"
@@ -39,14 +39,66 @@ def render_template(name, **ctx):
         with urllib.request.urlopen(reqtempl, timeout=5) as resptempl:
             template_list = json.loads(resptempl.read().decode("utf-8"))
             append_log("templates loaded")
-        return template_list[_name].format_map(HandleMissingVar(**ctx))
+            _tmp = template_list[_name]
+            append_log("applying iteration")
+            _tmp = _apply_microloops(_tmp, ctx)
+        return _tmp.format_map(HandleMissingVar(**ctx))
     except Exception as e:
-        return f"[ERROR] rendering template '{name}': {e}"
+        append_log(f"[ERROR] rendering template '{name}': {e}")
+        return f"🔴 [ERROR] Sorry, an error occured rendering template '{name}'. 🔴"
+
+def _render_once_with_vars(text: str, vars_dict: dict):
+    return text.format_map(HandleMissingVar(**vars_dict))
+
+def _apply_microloops(text: str, vars_dict: dict):
+    """
+        This function will recursively expands <!-- #for x in list --> ... <!-- #endfor --> blocks. Convention: use placeholders like {x[key]} or {x[0]}, etc. in body to activate this.
+        Not actually support nested loops
+    """
+    FOR_BLOCK_RE = re.compile(
+        r"<!--\s*#for\s+(?P<var>\w+)\s+in\s+(?P<iter>\w+)\s*-->(?P<body>.*?)<!--\s*#endfor\s*-->",
+        re.DOTALL | re.IGNORECASE,
+    )
+    append_log("trying to expands iterated vars")    
+    try:
+        while True:
+            m = FOR_BLOCK_RE.search(text)
+            if not m:
+                append_log("nothing to iterate found")
+                break
+            else:
+               append_log("block to iterate found!") 
+               
+            _var_name = m.group("var") 
+            _iter_name = m.group("iter") 
+            _body = m.group("body")               
+               
+            iterable = vars_dict.get(_iter_name, [])
+            if not isinstance(iterable, (list, tuple)):
+                append_log("iterable not found")
+                iterable = []
+
+            rendered_parts = []
+            for item in iterable:
+                scope = dict(vars_dict)
+                scope[_var_name] = item
+                rendered_parts.append(_render_once_with_vars(_body, scope))
+                append_log(f"added: {item} to rendered parts")
+                
+            start, end = m.span()
+            text = text[:start] + "".join(rendered_parts) + text[end:]
+            append_log("iterations completed succesfully")
+
+        return text   
+    except Exception as e:
+        append_log(f"An error occured trying to render microloop: {e}")
       
 def add_user_template(u_template, u_subject, u_content, u_var=None):
     AVAILABLE_TEMPLATE = [
         "UT_default"
         , "UT_default_adv"
+        , "UT_table_4col"        
+        , "UT_table_5col"
     ]
     
     if not u_template:
@@ -65,7 +117,7 @@ def add_user_template(u_template, u_subject, u_content, u_var=None):
                 else:
                     append_log("var provided is not a JSON object — ignored")
             except Exception as e:
-                append_log(f"JSON error: {e} retrieving user var")
+                append_log(f"[ERROR] JSON error: {e} retrieving user var")       
         u_content = u_content.format_map(HandleMissingVar(**user_vars))  
         u_subject = u_subject.format_map(HandleMissingVar(**user_vars))     
         completevar = {**user_vars, "subject": u_subject, "html_content": u_content}
@@ -73,14 +125,17 @@ def add_user_template(u_template, u_subject, u_content, u_var=None):
         if u_template in AVAILABLE_TEMPLATE:  
             append_log("builtin template provided") 
             try:
-                return render_template(u_template, **completevar), u_subject
+                u_template_file_content = render_template(u_template, **completevar)
+                return u_template_file_content, u_subject
             except Exception as e:
                 append_log(f"template '{u_template}' error: {e} — fallback to raw content")
                 return u_content, u_subject   
         elif os.path.exists(u_template_file):
+            append_log("custom template provided")             
             try:
                 with open(u_template_file, 'r') as g:
                     u_template_file_content = g.read()    
+                u_template_file_content = _apply_microloops(u_template_file_content, completevar)    
                 return u_template_file_content.format_map(HandleMissingVar(**completevar)), u_subject
             except Exception as e:
                 append_log(f"custom template '{u_template}' error: {e} — fallback to raw content")
@@ -1026,11 +1081,14 @@ if __name__ == "__main__":
     
     if args.test_mode:
         print("Activating test mode") 
+        args.debug_enabled = True
+        log_file, log_file_count = create_log_file()
+        append_log("### TEST MODE ON ###")
+        append_log(f"### Script Version: {__version__} ###")
         args.subject = f"📩 TN SendEmail Test mode V{__version__}"        
         args.mail_body_html = get_test_message()
         args.attachment_files = None
         args.mail_bulk = None
-        args.debug_enabled = True
         args.override_fromname = "Oxyde"
         args.override_fromemail = None
         args.to_address = read_user_email()
@@ -1038,11 +1096,11 @@ if __name__ == "__main__":
     validate_arguments(args) 
 
     try:        
-        log_file, log_file_count = create_log_file()
         if args.test_mode:
-            append_log("### TEST MODE ON ###")
             args.attachment_files = [log_file]
-        append_log(f"### Script Version: {__version__} ###")    
+        else:
+            log_file, log_file_count = create_log_file()
+            append_log(f"### Script Version: {__version__} ###")    
         append_log(f"File {log_file} successfully generated")
         append_log(f"{log_file_count} totals file log")
         
