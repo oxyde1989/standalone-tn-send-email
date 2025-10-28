@@ -11,9 +11,9 @@ from email import message_from_string
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
-##### V 1.70
+##### V 1.71
 ##### Stand alone script to send email via Truenas
-__version__ = "1.70"
+__version__ = "1.71"
 __ghlink__ = "https://github.com/oxyde1989/standalone-tn-send-email"
 __ghlink_raw__ = "https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/refs/heads/main/sendemail.py"
 __ghlink_raw_sha__ = "https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/refs/heads/main/sendemail.py.sha256"
@@ -859,7 +859,8 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                 op_result_error = str(e)
                 if server_sendemail_done and any(x in op_result_error.lower() for x in ["(-1,", "connection", "broken pipe", "reset", "closed"]):
                     append_log("Ignoring the error because has been detected as not-fatal")
-                    return
+                    append_log("SMTP operations finished")
+                    return attachment_ok_count  
                 else:
                     process_output(True, f"KO: {e}", 1)                
                                
