@@ -53,7 +53,7 @@
       <div class="container">
         <span  class="navbar-brand d-flex align-items-center gap-2" href="#">
           <span class="fs-5">📬</span>
-          <strong>Standalone SendEmail V1.75</strong>
+          <strong>Standalone SendEmail V1.80</strong>
         </span >
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav" aria-controls="nav" aria-expanded="false" aria-label="Toggle navigation">
           <span class="navbar-toggler-icon"></span>
@@ -389,7 +389,49 @@
                   </div>
                 </div>
               </div>                              
-              
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="h-inst-7">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c-inst-7" aria-expanded="false" aria-controls="c-inst-7">
+                    📎 Attachments
+                  </button>
+                </h2>
+                <div id="c-inst-7" class="accordion-collapse collapse" aria-labelledby="h-inst-7" data-bs-parent="#acc-inst">
+                  <div class="accordion-body">
+                      The script is capable to handle attachments: just pass a list of file path to the arg <code>--attachment_files</code><br>
+                      From version 1.80, is also capable to send a single .zip containing your files enabling the arg <code>--zip_attachments</code>.<br>
+                      Take care:<ul>
+                          <li> every single file can't exceed 50mb</li>
+                          <li> the total attachments size can't exceed 50mb</li>
+                          <li> you cannot attach symlink files</li>
+                          <li> you cannot attach certain blacklisted file <br>
+                            <code>
+DENYLIST_PREFIXES = [
+    "/etc/ssh/",
+    "/root/.ssh/",
+]
+
+DENYLIST_FILES = [
+    "/etc/passwd",
+    "/etc/shadow",
+    "/etc/hosts",
+    "/root/.bash_history",
+    "/var/log/auth.log",
+    "/var/log/messages",
+    "/var/log/secure",
+    "/etc/sudoers",
+    "/etc/fstab",
+]                              
+                            </code>
+
+                          </li>
+                        </ul>
+                      Also (but this not rely on sendemail itself): <ul>
+                          <li> many providers can reject your email if contains certain file extension (eg .html, .json, .tar ecc)</li>
+                          <li> many providers can reject your email if attachments size exceed theyr arbitrary quota</li>
+                        </ul>
+                  </div>
+                </div>
+              </div>                  
             </div>
           </section>
 

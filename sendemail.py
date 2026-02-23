@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import smtplib, json, argparse, os, stat, time, base64, subprocess, socket, uuid, requests, urllib.request, sys, re, hashlib, hmac, shutil, mimetypes
+import smtplib, json, argparse, os, stat, time, base64, subprocess, socket, uuid, requests, urllib.request, sys, re, hashlib, hmac, shutil, mimetypes, zipfile, io
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -11,9 +11,9 @@ from email import message_from_string
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
-##### V 1.75
+##### V 1.80
 ##### Stand alone script to send email via Truenas
-__version__ = "1.75"
+__version__ = "1.80"
 __ghlink__ = "https://github.com/oxyde1989/standalone-tn-send-email"
 __ghlink_raw__ = "https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/refs/heads/main/sendemail.py"
 __ghlink_raw_sha__ = "https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/refs/heads/main/sendemail.py.sha256"
@@ -586,14 +586,20 @@ def attachment_denied(path):
         pass
     return False
 
-def attach_files(msg, attachment_files, attachment_ok_count):
+def attach_files(msg, attachment_files, attachment_ok_count, zip_attachments=False):
     """
     Function to attach files: max size:50mb, no symlink allowed
     """
     attachment_max_size = 50 * 1024 * 1024
+    attachments_current_total_size = 0
+    attachments_file_valid = []
+
     for attachment_file in attachment_files:
         try:
             st = os.lstat(attachment_file)
+            if (attachments_current_total_size + st.st_size) > attachment_max_size:
+                append_log(f"skipping {attachment_file}: maximum attachments size would be exceeded")
+                continue
             if stat.S_ISLNK(st.st_mode):
                 append_log(f"skipping {attachment_file}: symlink detected")
                 continue
@@ -606,35 +612,71 @@ def attach_files(msg, attachment_files, attachment_ok_count):
                 append_log(f"skipping {attachment_file}: file in denylist")
                 continue
             append_log(f"blacklist verification for {attachment_file} pass")
-            with open(attachment_file, 'rb') as f:
-                file_data = f.read()
-                #part = MIMEBase('application', 'octet-stream')
-                append_log(f"trying to parse the correct mimetype for {attachment_file}")
-                _ctypefallback = 'application/octet-stream'
-                _ctype, _encoding = mimetypes.guess_type(attachment_file)
-                append_log(f"result: {_ctype} | {_encoding}")
-                if _ctype is None or _encoding is not None:
-                    append_log("need to apply the fallback. This can lead to a send failure depending on your provider")
-                    _ctype = _ctypefallback
-                try:
-                    _maintype, _subtype = _ctype.split('/', 1)
-                    append_log("mimetype correctly splitted")
-                except Exception as e:
-                    append_log(f"something wrong with the mimetype split: {e}; the fallback will be applied")
-                    _maintype, _subtype = 'application', 'octet-stream'
-                part = MIMEBase(_maintype, _subtype)
-                part.set_payload(file_data)
-                encoders.encode_base64(part)
-                part.add_header(
-                    'Content-Disposition',
-                    f'attachment; filename="{attachment_file.split("/")[-1]}"'
-                )
-                msg.attach(part)
-                attachment_ok_count +=1
-                append_log(f"attachment OK {attachment_file}")
-
+            attachments_file_valid.append(attachment_file)
+            attachments_current_total_size += st.st_size
+            append_log(f"attachment valid {attachment_file}")
         except Exception as e:
-            append_log(f"attachment KO {attachment_file}: {e}")
+            append_log(f"attachment invalid {attachment_file}: {e}")
+
+    if not attachments_file_valid:
+        return attachment_ok_count
+
+    attachments_file_valid_count = len(attachments_file_valid)
+    append_log(f"Found {attachments_file_valid_count} valid files")
+
+    if zip_attachments:
+        try:
+            append_log(f"zip mode enabled")
+            zip_buffer = io.BytesIO()
+            with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
+                for f_path in attachments_file_valid:
+                    zf.write(f_path, os.path.basename(f_path))
+                    attachment_ok_count +=1
+                    append_log(f"queued {f_path}")
+            file_data = zip_buffer.getvalue()
+            part = MIMEBase('application', 'zip')
+            part.set_payload(file_data)
+            encoders.encode_base64(part)
+            _ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+            _fn = f"attachments_{_ts}.zip"
+            part.add_header('Content-Disposition', f'attachment; filename="{_fn}"')
+            msg.attach(part)
+            append_log("valid files has been zipped")
+        except Exception as e:
+            attachment_ok_count = 0
+            append_log(f"fail to zip {attachment_file}: {e}")
+    else:
+        try:
+            append_log(f"standard attachment mode")
+            for s_attachment_file in attachments_file_valid:
+                with open(s_attachment_file, 'rb') as f:
+                    file_data = f.read()
+                    append_log(f"trying to parse the correct mimetype for {s_attachment_file}")
+                    _ctypefallback = 'application/octet-stream'
+                    _ctype, _encoding = mimetypes.guess_type(s_attachment_file)
+                    append_log(f"result: {_ctype} | {_encoding}")
+                    if _ctype is None or _encoding is not None:
+                        append_log("need to apply the fallback. This can lead to a send failure depending on your provider")
+                        _ctype = _ctypefallback
+                    try:
+                        _maintype, _subtype = _ctype.split('/', 1)
+                        append_log("mimetype correctly splitted")
+                    except Exception as e:
+                        append_log(f"something wrong with the mimetype split: {e}; the fallback will be applied")
+                        _maintype, _subtype = 'application', 'octet-stream'
+                    part = MIMEBase(_maintype, _subtype)
+                    part.set_payload(file_data)
+                    encoders.encode_base64(part)
+                    part.add_header(
+                        'Content-Disposition',
+                        f'attachment; filename="{s_attachment_file.split("/")[-1]}"'
+                    )
+                    msg.attach(part)
+                    attachment_ok_count +=1
+                    append_log(f"attachment {s_attachment_file} done")
+        except Exception as e:
+            append_log(f"failed to pars attachment in standard mode: {e}")
+
     return attachment_ok_count
 
 def getMRconfigvalue(key):
@@ -715,6 +757,7 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
     fallback_fromemail = getMRconfigvalue("From")
     override_fromname = args.override_fromname
     override_fromemail = args.override_fromemail
+    zip_attachments = args.zip_attachments
     from_options = [
         (override_fromname, override_fromemail, "using override fromname-email"),
         (fallback_fromname, fallback_fromemail, "using mr-config fromname-email"),
@@ -774,7 +817,7 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                 append_log("check for attachements...")
                 if attachment_files:
                     append_log("attachments found")
-                    attachment_ok_count = attach_files(msg, attachment_files, attachment_ok_count)
+                    attachment_ok_count = attach_files(msg, attachment_files, attachment_ok_count, zip_attachments)
                     append_log(f"{attachment_ok_count} ok attachments")
 
                 append_log("get hostname")
@@ -910,7 +953,7 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                 append_log("check for attachements...")
                 if attachment_files:
                     append_log("attachments found")
-                    attachment_ok_count = attach_files(msg, attachment_files, attachment_ok_count)
+                    attachment_ok_count = attach_files(msg, attachment_files, attachment_ok_count, zip_attachments)
                     append_log(f"{attachment_ok_count} ok attachments")
 
                 append_log("Encoding message")
@@ -975,7 +1018,7 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                 append_log("check for attachements...")
                 if attachment_files:
                     append_log("attachments found")
-                    attachment_ok_count = attach_files(msg, attachment_files, attachment_ok_count)
+                    attachment_ok_count = attach_files(msg, attachment_files, attachment_ok_count, zip_attachments)
                     append_log(f"{attachment_ok_count} ok attachments")
 
                 append_log("get hostname")
@@ -1071,6 +1114,7 @@ if __name__ == "__main__":
     parser.add_argument("--notify_self_update", help="OPTIONAL use to let the script to send a notification if a self update is performed", action='store_true')
     parser.add_argument("--use_template", help="OPTIONAL specify a template code to wrap the email. Not available in bulk path")
     parser.add_argument("--template_var", help="OPTIONAL a json object containing all the dynamic fields to be used in the template")
+    parser.add_argument("--zip_attachments", help="OPTIONAL use to let the script handle the creation of a zip file instead of send attachments one by one", action='store_true')
 
     args = parser.parse_args()
 

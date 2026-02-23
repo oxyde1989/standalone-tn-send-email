@@ -19,12 +19,13 @@ TLDR, there are 2 differents basic usage methods:
 2. Passing only the full email base64 encoded (nor a file path and plain text) as `--mail_bulk`, trying to emulating the old `sendemail` function, and all the info will be retrieved there.
 
 [Read the full documentation](https://oxyde1989.github.io/standalone-tn-send-email/) to discover all the script's capabilities
-- debugging
-- update strategy
-- test mode
+- attachments
 - sender override logics
 - prebuilt templates
 - custom templates
+- debugging
+- update strategy
+- test mode
 
 and some usefull report snipplets ready to use
 
