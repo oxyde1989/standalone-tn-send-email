@@ -11,9 +11,9 @@ from email import message_from_string
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
-##### V 1.80
+##### V 1.81
 ##### Stand alone script to send email via Truenas
-__version__ = "1.80"
+__version__ = "1.81"
 __ghlink__ = "https://github.com/oxyde1989/standalone-tn-send-email"
 __ghlink_raw__ = "https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/refs/heads/main/sendemail.py"
 __ghlink_raw_sha__ = "https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/refs/heads/main/sendemail.py.sha256"
@@ -118,6 +118,7 @@ def add_user_template(u_template, u_subject, u_content, u_var=None):
                     append_log("var provided is not a JSON object — ignored")
             except Exception as e:
                 append_log(f"[ERROR] JSON error: {e} retrieving user var")
+        u_content = u_content.replace("{", "{{").replace("}", "}}")
         u_content = u_content.format_map(HandleMissingVar(**user_vars))
         u_subject = u_subject.format_map(HandleMissingVar(**user_vars))
         completevar = {**user_vars, "subject": u_subject, "html_content": u_content}
