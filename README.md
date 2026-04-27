@@ -11,11 +11,31 @@ This standalone script provides the ability to send emails and attachments using
 
 Originally designed to be a wrapper for [Joe's Multi Report](https://github.com/JoeSchmuck/Multi-Report), it also can be used to simplify sending email overall in many other scenarios.
 
+## ⚠️ Breaking change (vNext)
+
+Version 1.90 introduces a **change in email body handling**.
+
+### Before
+```
+--mail_body_html
+```
+### Now
+
+```
+--mail_body
+--mail_body_type (html | plain > default html)
+```
+
+For backward compatibility:
+- --mail_body_html is still supported, but being deprecated, will be removed in a future release
+- If both --mail_body and --mail_body_html are somehow provided, --mail_body takes precedence.
+- Custom templates should be aligned, replacing the old `{html_content}` with `{body_content}`, because `{html_content}` variable will be removed in future relase 
+
 ## 🧰 Guidelines
 
 TLDR, there are 2 differents basic usage methods:
 
-1. Passing `--subject`, `--to_address`, `--mail_body_html` (either a file path and plain text), plus other optionally args (like attachments, sender override logics, email template).
+1. Passing `--subject`, `--to_address`, `--mail_body` (either a file path and plain text), plus other optionally args (like mail_body_type, attachments, sender override logics, email template).
 2. Passing only the full email base64 encoded (nor a file path and plain text) as `--mail_bulk`, trying to emulating the old `sendemail` function, and all the info will be retrieved there.
 
 [Read the full documentation](https://oxyde1989.github.io/standalone-tn-send-email/) to discover all the script's capabilities

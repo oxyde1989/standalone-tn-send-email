@@ -11,9 +11,9 @@ from email import message_from_string
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
-##### V 1.81
+##### V 1.90
 ##### Stand alone script to send email via Truenas
-__version__ = "1.81"
+__version__ = "1.90"
 __ghlink__ = "https://github.com/oxyde1989/standalone-tn-send-email"
 __ghlink_raw__ = "https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/refs/heads/main/sendemail.py"
 __ghlink_raw_sha__ = "https://raw.githubusercontent.com/oxyde1989/standalone-tn-send-email/refs/heads/main/sendemail.py.sha256"
@@ -121,7 +121,7 @@ def add_user_template(u_template, u_subject, u_content, u_var=None):
         u_content = u_content.replace("{", "{{").replace("}", "}}")
         u_content = u_content.format_map(HandleMissingVar(**user_vars))
         u_subject = u_subject.format_map(HandleMissingVar(**user_vars))
-        completevar = {**user_vars, "subject": u_subject, "html_content": u_content}
+        completevar = {**user_vars, "subject": u_subject, "body_content": u_content}
         append_log("switch from builtin template or custom file template")
         if u_template in AVAILABLE_TEMPLATE:
             append_log("builtin template provided")
@@ -335,13 +335,18 @@ class NotifyForUpdate:
 
 def validate_arguments(args):
     """
-        new function for an easier validation of the args passed to the function, due the fact there are now 2 calls methods. If mail_body_html is passed, nor subject and to_address are mandatory
+        new function for an easier validation of the args passed to the function, due the fact there are now 2 calls methods. If mail_body is passed, nor subject and to_address are mandatory
     """
-    if not args.mail_bulk and not args.mail_body_html:
-        print("Error: You must provide at least --mail_bulk or --mail_body_html.")
+    # TODO REMOVE DEPRECATED ARG
+    body_provided = bool(args.mail_body or args.mail_body_html)
+    if not args.mail_bulk and not body_provided:
+        print("Error: You must provide at least --mail_bulk or --mail_body")
         sys.exit(1)
-    if args.mail_body_html and (not args.subject or not args.to_address):
-        print("Error: If --mail_body_html is provided, both --subject and --to_address are required.")
+    if body_provided and (not args.subject or not args.to_address):
+        print("Error: --subject and --to_address are required when sending a single email body")
+        sys.exit(1)
+    if args.mail_body_type and args.mail_body_type not in ["html", "plain"]:
+        print("Error: --mail_body_type contains not allowed option")
         sys.exit(1)
     for param_name in ["subject", "to_address", "override_fromname", "override_fromemail"]:
         param_value = getattr(args, param_name, None)
@@ -523,7 +528,7 @@ def read_user_email():
         return None
     return None
 
-def load_html_content(input_content):
+def load_body_content(input_content):
     """
      use this fuction to switch from achieve nor a file to read and a plain text/html
     """
@@ -747,7 +752,7 @@ def get_fromname_fromemail(options):
 def get_test_message():
     return render_template("test_message", __version__=__version__,__ghlink__=__ghlink__)
 
-def send_email(subject, to_address, mail_body_html, attachment_files, email_config, provider, bulk_email, user_template):
+def send_email(subject, to_address, mail_body, mail_body_type, attachment_files, email_config, provider, bulk_email, user_template):
     """
     Function to send an email via SMTP or Gmail OAuth based on the provider available
     """
@@ -781,12 +786,13 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
             smtp_login = email_config["smtp"]
 
             append_log("switch from classic send and bulk email")
-            if mail_body_html:
-                append_log("mail hmtl provided")
-                append_log("parsing html content")
-                html_content = load_html_content(mail_body_html)
+            if mail_body:
+                append_log("mail body provided")
+                append_log(f"mail body type {mail_body_type} provided")
+                append_log("parsing content")
+                body_content = load_body_content(mail_body)
                 append_log("trying apply a template")
-                html_content, subject = add_user_template(user_template, subject, html_content, args.template_var)
+                body_content, subject = add_user_template(user_template, subject, body_content, args.template_var)
 
                 append_log("start parsing headers")
                 msg = MIMEMultipart()
@@ -795,7 +801,7 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                 msg['From'], smtp_senderemail = get_fromname_fromemail(from_options)
                 msg['To'] = to_address
                 msg['Subject'] = subject
-                msg.attach(MIMEText(html_content, 'html'))
+                msg.attach(MIMEText(body_content, mail_body_type))
 
                 append_log(f"generate a message ID using {smtp_user}")
                 try:
@@ -839,7 +845,7 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
             elif bulk_email:
                 append_log("using bulk email provided")
                 hostname = ""
-                pre_msg = load_html_content(bulk_email)
+                pre_msg = load_body_content(bulk_email)
                 if not pre_msg:
                     append_log("can't properly retrieve bulk email")
                 validate_base64_content(pre_msg)
@@ -935,16 +941,16 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
             service = build('gmail', 'v1', credentials=credentials)
 
             append_log("switch from classic send and bulk email")
-            if mail_body_html:
-                append_log("mail hmtl provided")
+            if mail_body:
+                append_log("mail body provided")
                 append_log("start parsing headers")
                 msg = MIMEMultipart()
 
                 append_log("parsing html content")
-                html_content = load_html_content(mail_body_html)
+                body_content = load_body_content(mail_body)
                 append_log("trying apply a template")
-                html_content, subject = add_user_template(user_template, subject, html_content, args.template_var)
-                msg.attach(MIMEText(html_content, 'html'))
+                body_content, subject = add_user_template(user_template, subject, body_content, args.template_var)
+                msg.attach(MIMEText(body_content, mail_body_type))
 
                 append_log("parsing data from config and override options")
                 msg['From'], smtp_senderemail = get_fromname_fromemail(from_options)
@@ -963,7 +969,7 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
 
             elif bulk_email:
                 append_log("using bulk email provided")
-                msg = load_html_content(bulk_email)
+                msg = load_body_content(bulk_email)
                 validate_base64_content(msg)
             else:
                 process_output(True, "Something wrong with the data input", 1)
@@ -986,12 +992,12 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
             smtp_port = email_config["port"]
 
             append_log("switch from classic send and bulk email")
-            if mail_body_html:
+            if mail_body:
                 append_log("mail hmtl provided")
                 append_log("parsing html content")
-                html_content = load_html_content(mail_body_html)
+                body_content = load_body_content(mail_body)
                 append_log("trying apply a template")
-                html_content, subject = add_user_template(user_template, subject, html_content, args.template_var)
+                body_content, subject = add_user_template(user_template, subject, body_content, args.template_var)
 
                 append_log("start parsing headers")
                 msg = MIMEMultipart()
@@ -999,7 +1005,7 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
                 msg['From'], smtp_senderemail = get_fromname_fromemail(from_options)
                 msg['To'] = to_address
                 msg['Subject'] = subject
-                msg.attach(MIMEText(html_content, 'html'))
+                msg.attach(MIMEText(body_content, mail_body_type))
 
                 append_log(f"generate a message ID using {smtp_senderemail}")
                 try:
@@ -1040,7 +1046,7 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
             elif bulk_email:
                 append_log("using bulk email provided")
                 hostname = ""
-                pre_msg = load_html_content(bulk_email)
+                pre_msg = load_body_content(bulk_email)
                 if not pre_msg:
                     append_log("can't properly retrieve bulk email")
                 validate_base64_content(pre_msg)
@@ -1100,9 +1106,9 @@ def send_email(subject, to_address, mail_body_html, attachment_files, email_conf
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Workaround to send email easily in Multi Report using Truenas mail.config")
-    parser.add_argument("--subject", help="Email subject. Mandatory when using -mail_body_html")
-    parser.add_argument("--to_address", help="Recipient email address. Mandatory when using -mail_body_html")
-    parser.add_argument("--mail_body_html", help="File path for the email body, or just a plain text/html. No encoding needed")
+    parser.add_argument("--subject", help="Email subject. Mandatory when using --mail_body")
+    parser.add_argument("--to_address", help="Recipient email address. Mandatory when using --mail_body")
+    parser.add_argument("--mail_body_html", help="DEPRECATED File path for the email body, or just a plain text/html. No encoding needed")
     parser.add_argument("--attachment_files", help="OPTIONAL attachments as json file path array. No ecoding needed", nargs='*')
     parser.add_argument("--mail_bulk", help="Bulk email with all necessary parts, encoded and combined together. File path or plain text supported. Content must be served as Base64 without newline /n, the recipient will be get from the To in the message")
     parser.add_argument("--debug_enabled", help="OPTIONAL use to let the script debug all steps into log files. Usefull for troubleshooting", action='store_true')
@@ -1116,6 +1122,9 @@ if __name__ == "__main__":
     parser.add_argument("--use_template", help="OPTIONAL specify a template code to wrap the email. Not available in bulk path")
     parser.add_argument("--template_var", help="OPTIONAL a json object containing all the dynamic fields to be used in the template")
     parser.add_argument("--zip_attachments", help="OPTIONAL use to let the script handle the creation of a zip file instead of send attachments one by one", action='store_true')
+    parser.add_argument("--mail_body", help="File path for the email body, or just a plain text/html. No encoding needed")
+    parser.add_argument("--mail_body_type", default="html", choices=["html", "plain"], help="html or plain, default html")
+
 
     args = parser.parse_args()
 
@@ -1146,12 +1155,15 @@ if __name__ == "__main__":
         append_log("### TEST MODE ON ###")
         append_log(f"### Script Version: {__version__} ###")
         args.subject = f"📩 TN SendEmail Test mode V{__version__}"
-        args.mail_body_html = get_test_message()
+        args.mail_body = get_test_message()
+        args.mail_body_type = "html"
         args.attachment_files = None
         args.mail_bulk = None
         args.override_fromname = "Oxyde"
         args.override_fromemail = None
         args.to_address = read_user_email()
+
+    args.mail_body_type = args.mail_body_type or "html"
 
     validate_arguments(args)
 
@@ -1188,7 +1200,17 @@ if __name__ == "__main__":
         else:
             process_output(True, "Can't switch provider", 1)
 
-        attachment_count_valid = send_email(args.subject, args.to_address, args.mail_body_html, args.attachment_files, email_config, provider, args.mail_bulk, args.use_template)
+        # TODO REMOVE
+        if args.mail_body_html:
+            append_log("WARNING: mail_body_html is deprecated and will be removed in future release")
+            print("WARNING: mail_body_html is deprecated and will be removed in future release")
+        if args.mail_body in (None, ""):
+            args.mail_body = args.mail_body_html
+        elif args.mail_body and args.mail_body_html:
+            append_log("Both mail_body and mail_body_html provided: mail_body takes precedence")
+
+
+        attachment_count_valid = send_email(args.subject, args.to_address, args.mail_body, args.mail_body_type, args.attachment_files, email_config, provider, args.mail_bulk, args.use_template)
 
         if attachment_count_valid is None:
             attachment_count_valid = 0

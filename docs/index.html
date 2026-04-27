@@ -53,7 +53,7 @@
       <div class="container">
         <span  class="navbar-brand d-flex align-items-center gap-2" href="#">
           <span class="fs-5">📬</span>
-          <strong>Standalone SendEmail V1.81</strong>
+          <strong>Standalone SendEmail V1.90</strong>
         </span >
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav" aria-controls="nav" aria-expanded="false" aria-label="Toggle navigation">
           <span class="navbar-toggler-icon"></span>
@@ -113,7 +113,7 @@
                   <div class="accordion-body">
                         Actually, there are basically 2 different usage methods:
                         <ul>
-                            <li>Passing <code>--subject</code>, <code>--to_address</code>, <code>--mail_body_html</code> (either a file path and plain text), plus other optionally args explained belove.</li>
+                            <li>Passing <code>--subject</code>, <code>--to_address</code>, <code>--mail_body</code> (either a file path and plain text), plus other optionally args explained belove.</li>
                             <li>Passing only the full email base64 encoded (either a file path and plain text) as <code>--mail_bulk</code>, trying to emulating the old sendemail function, and all the info will be retrieved there.</li>
                         </ul> 
                         Check the <a href="#advanced" class="btn btn-sm btn-primary">Advanced usage methods</a> section for more details!                          
@@ -360,7 +360,7 @@
                         <ul>
                           <li>create a file in the same sendemail execution folder</li>
                           <li>fill up every dynamic fields you need with this sintax: <code>{myfieldname}</code></li>
-                          <li>email subject is available as <code>{subject}</code>, and the html body as <code>{html_content}</code></li>
+                          <li>email subject is available as <code>{subject}</code>, and the html body as <code>{body_content}</code></li>
                           <li><b>be careful on escape single bracket on other part of the code:</b> they must be escaped with a double bracket, example: <code> .myclass { color: black;} ...</code> must be <code> .myclass {{ color: black;}} ...</code>, otherwhise the template will not be applied correctly</li>
                           <li>pass <code>--use_template "myfile.html"</code> and <code>--template_var</code> arg with all the dynamic fields you have created in the template <code>{"myfieldname": "myvalue" ...}</code></li>
                         </ul>
@@ -431,7 +431,22 @@ DENYLIST_FILES = [
                         </ul>
                   </div>
                 </div>
+              </div>    
+              
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="h-inst-8">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c-inst-8" aria-expanded="false" aria-controls="c-inst-8">
+                    📃 Choose between html or plain text
+                  </button>
+                </h2>
+                <div id="c-inst-8" class="accordion-collapse collapse" aria-labelledby="h-inst-8" data-bs-parent="#acc-inst">
+                  <div class="accordion-body">
+                        Sendemail.py always worked considering your body content as HTML, but from version 1.90 you can decide to send the email as plain text, keeping intact original newlines 
+                        (for example to see the content of a log file well formatted), just passing the arg <code>--mail_body_type</code> as <code>plain</code>.         
+                  </div>
+                </div>
               </div>                  
+
             </div>
           </section>
 
@@ -535,7 +550,7 @@ attachment+=("path/to/first/attachment")  # Replace with the actual path
 python3 sendemail.py \
     --subject "$subject" \
     --to_address "$recipient" \
-    --mail_body_html "$html_file" \
+    --mail_body "$html_file" \
     --attachment_files "${attachment[@]}"</code> </pre>
                   </div>
                 </div>
@@ -570,7 +585,7 @@ html_file="&#60;h1&#62;Send Email Test&#60;/h1&#62;&#60;p&#62;Hello World!&#60;/
 python3 sendemail.py \
     --subject "$subject" \
     --to_address "$recipient" \
-    --mail_body_html "$html_file" \
+    --mail_body "$html_file" \
     --override_fromname "Pippo" \
     --override_fromemail "myemail+pippo@gmail.com"</pre>
                   </div>
@@ -592,7 +607,7 @@ html_file="&#60;h1&#62;Send Email Test&#60;/h1&#62;&#60;p&#62;Hello World!&#60;/
 python3 sendemail.py \
     --subject "$subject" \
     --to_address "$recipient" \
-    --mail_body_html "$html_file" \
+    --mail_body "$html_file" \
     --debug_enabled</code></pre>
                   </div>
                 </div>
@@ -635,7 +650,7 @@ python3 sendemail.py --self_update --notify_self_update</code></pre>
 python3 sendemail.py \
     --subject "My subject" \
     --to_address "myemail@gmail.com" \
-    --mail_body_html "&#60;h1&#62;Send Email Test&#60;/h1&#62;&#60;p&#62;Hello World!&#60;/p&#62;" \
+    --mail_body "&#60;h1&#62;Send Email Test&#60;/h1&#62;&#60;p&#62;Hello World!&#60;/p&#62;" \
     --use_template "UT_default"</code></pre>
                   </div>
                 </div>
@@ -652,7 +667,7 @@ python3 sendemail.py \
 python3 sendemail.py \
     --subject "My subject" \
     --to_address "myemail@gmail.com" \
-    --mail_body_html "&#60;h1&#62;Send Email Test&#60;/h1&#62;&#60;p&#62;Hello World!&#60;/p&#62;" \
+    --mail_body "&#60;h1&#62;Send Email Test&#60;/h1&#62;&#60;p&#62;Hello World!&#60;/p&#62;" \
     --use_template "UT_default_adv" \
     --template_var '{
     "bkcol": "#fff5f5", 
@@ -678,7 +693,7 @@ python3 sendemail.py \
 python3 sendemail.py \
     --subject "My subject" \
     --to_address "myemail@gmail.com" \
-    --mail_body_html "&#60;h1&#62;{fieldkey1} Test&#60;/h1&#62;&#60;p&#62;Hello World! {fieldkey2} {fieldkey3}&#60;/p&#62;" \
+    --mail_body "&#60;h1&#62;{fieldkey1} Test&#60;/h1&#62;&#60;p&#62;Hello World! {fieldkey2} {fieldkey3}&#60;/p&#62;" \
     --use_template "mycustomtemplate.html" \
     --template_var '{
     "fieldkey1":"fieldvalue1"
@@ -701,7 +716,7 @@ python3 sendemail.py \
 python3 sendemail.py \
     --subject "My subject {fieldkey3}" \
     --to_address "myemail@gmail.com" \
-    --mail_body_html "&#60;h1&#62;{fieldkey1} Test&#60;/h1&#62;&#60;p&#62;Hello World! {fieldkey2} {fieldkey3}&#60;/p&#62;" \
+    --mail_body "&#60;h1&#62;{fieldkey1} Test&#60;/h1&#62;&#60;p&#62;Hello World! {fieldkey2} {fieldkey3}&#60;/p&#62;" \
     --use_template "mycustomtemplatewithiterate.html" \
     --template_var '{
     "fieldkey1":"fieldvalue1"
@@ -724,7 +739,26 @@ python3 sendemail.py \
 </pre>
                   </div>
                 </div>
-              </div>                
+              </div>    
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="h-usex-11">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c-usex-11" aria-expanded="false" aria-controls="c-usex-11">
+                    🔘 Send method 1 - sending plain text body content
+                  </button>
+                </h2>
+                <div id="c-usex-11" class="accordion-collapse collapse" aria-labelledby="h-usex-11" data-bs-parent="#acc-usex">
+                  <div class="accordion-body">
+                      <pre class="code mb-0"><code>#!/bin/bash 
+python3 sendemail.py \
+    --subject "test" \
+    --to_address "myemail@gmail.com" \
+    --mail_body "/mnt/pathtomyfile/log.txt" \
+    --mail_body_type "plain"</code> </pre>
+                  </div>
+                </div>
+              </div>              
+              
+
 
             </div>
           </section>
@@ -745,7 +779,7 @@ python3 sendemail.py \
 python3 sendemail.py \
     --subject &quot;🔷 App Report&quot; \
     --to_address &quot;replaceme@email.com&quot; \
-    --mail_body_html &quot;&amp;nbsp;&quot; \
+    --mail_body &quot;&amp;nbsp;&quot; \
     --use_template &quot;UT_table_5col&quot; \
 --template_var &quot;$(
 midclt call app.query | jq -c &#39;{ 
@@ -784,7 +818,7 @@ midclt call app.query | jq -c &#39;{
 python3 sendemail.py \
     --subject &quot;🐳 Docker Container Report&quot; \
     --to_address &quot;replaceme@email.com&quot; \
-    --mail_body_html &quot;&amp;nbsp;&quot; \
+    --mail_body &quot;&amp;nbsp;&quot; \
     --use_template &quot;UT_table_5col&quot; \
     --template_var &quot;$(docker ps --format '{{json .}}' \
 | jq -cs '{col1:&quot;Name&quot;,col2:&quot;Image&quot;,col3:&quot;Status&quot;,col4:&quot;Ports&quot;,col5:&quot;ID&quot;,containers: map({col1:.Names,col2:.Image,col3:.Status,col4:.Ports,col5:.ID}) }')
@@ -806,7 +840,7 @@ python3 sendemail.py \
 python3 sendemail.py \
     --subject &quot;🔋 UPS Report&quot; \
     --to_address &quot;replaceme@email.com&quot; \
-    --mail_body_html &quot;$(upsc *replaceme* | sed 's/$/&lt;br&gt;/')&quot; \
+    --mail_body &quot;$(upsc *replaceme* | sed 's/$/&lt;br&gt;/')&quot; \
     --use_template &quot;UT_default&quot;
 </code> </pre>
                   </div>
